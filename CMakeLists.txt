@@ -14,7 +14,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # is enabled and all warnings are treated as errors
 # if you want to switch this behavior, change TRUE to FALSE
 set(ENABLE_DEVELOPER_MODE
-    TRUE
+  FALSE 
     CACHE BOOL "Enable 'developer mode'")
 
 # Change this to false if you want to disable warnings_as_errors in developer mode
@@ -93,6 +93,9 @@ include(${_project_options_SOURCE_DIR}/src/DynamicProjectOptions.cmake)
 # set(<feature_name>_DEFAULT <value>) - set default for both user and developer modes
 # set(<feature_name>_DEVELOPER_DEFAULT <value>) - set default for developer mode
 # set(<feature_name>_USER_DEFAULT <value>) - set default for user mode
+
+set(ENABLE_CLANG_TIDY_DEFAULT OFF)
+set(ENABLE_CPPCHECK_DEFAULT OFF)
 
 # Initialize project_options variable related to this project
 # This overwrites `project_options` and sets `project_warnings`

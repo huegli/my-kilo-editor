@@ -1,57 +1,24 @@
-/* #include <functional> */
-/* #include <iostream> */
-/* #include <optional> */
-
-/* #include <CLI/CLI.hpp> */
-/* #include <spdlog/spdlog.h> */
-
-// This file will be generated automatically when you run the CMake configuration step.
-// It creates a namespace called `myproject`.
-// You can modify the source template at `configured_files/config.hpp.in`.
-/* #include <internal_use_only/config.hpp> */
-
-
-// NOLINTNEXTLINE(bugprone-exception-escape)
-/* int main(int argc, const char **argv) */
-/* { */
-/*   try { */
-/*     CLI::App app{ fmt::format("{} version {}", myproject::cmake::project_name, myproject::cmake::project_version) }; */
-
-/*     std::optional<std::string> message; */
-/*     app.add_option("-m,--message", message, "A message to print back out"); */
-/*     bool show_version = false; */
-/*     app.add_flag("--version", show_version, "Show version information"); */
-
-/*     CLI11_PARSE(app, argc, argv); */
-
-/*     if (show_version) { */
-/*       fmt::print("{}\n", myproject::cmake::project_version); */
-/*       return EXIT_SUCCESS; */
-/*     } */
-
-/*     // Use the default logger (stdout, multi-threaded, colored) */
-/*     spdlog::info("Hello, {}!", "World"); */
-
-/*     if (message) { */
-/*       fmt::print("Message: '{}'\n", *message); */
-/*     } else { */
-/*       fmt::print("No Message Provided :(\n"); */
-/*     } */
-/*   } catch (const std::exception &e) { */
-/*     spdlog::error("Unhandled exception in main: {}", e.what()); */
-/*   } */
-/* } */
-
-
 /*** includes ***/
+
 #include "terminal.h"
 
-#include <cstdarg>
-#include <cstring>
-#include <fstream>
+#include <stdexcept>
 #include <iostream>
+#include <fstream>
+#include <memory>
+
+#include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <time.h>
 
 /*** defines ***/
+
 const std::string KILO_VERSION{"0.0.1"};
 const int KILO_TAB_STOP{8};
 const int KILO_QUIT_TIMES{3};
@@ -93,8 +60,8 @@ struct editorSyntax {
 
 typedef struct erow {
   int idx;
-  int size;
-  int rsize;
+  std::size_t  size;
+  std::size_t  rsize;
   char *chars;
   char *render;
   unsigned char *hl;
@@ -159,15 +126,15 @@ void editorUpdateSyntax(erow *row) {
   const char *mcs = E.syntax->multiline_comment_start;
   const char *mce = E.syntax->multiline_comment_end;
 
-  int scs_len = scs ? strlen(scs) : 0;
-  int mcs_len = mcs ? strlen(mcs) : 0;
-  int mce_len = mce ? strlen(mce) : 0;
+  size_t scs_len = scs ? strlen(scs) : 0;
+  size_t mcs_len = mcs ? strlen(mcs) : 0;
+  size_t mce_len = mce ? strlen(mce) : 0;
 
   int prev_sep = 1;
   int in_string = 0;
   int in_comment = (row->idx > 0 && E.row[row->idx - 1].hl_open_comment);
 
-  int i = 0;
+  size_t i = 0;
   while (i < row->rsize) {
     char c = row->render[i];
     unsigned char prev_hl = (i > 0) ? row->hl[i - 1] : (char)HL_NORMAL;
@@ -236,8 +203,8 @@ void editorUpdateSyntax(erow *row) {
     if (prev_sep) {
       int j;
       for (j = 0; keywords[j]; j++) {
-        int klen = strlen(keywords[j]);
-        int kw2 = keywords[j][klen - 1] == '|';
+        size_t klen = strlen(keywords[j]);
+        size_t kw2 = keywords[j][klen - 1] == '|';
         if (kw2)
           klen--;
 
@@ -324,9 +291,9 @@ int editorRowCxToRx(erow *row, int cx) {
   return rx;
 }
 
-int editorRowRxToCx(erow *row, int rx) {
+size_t editorRowRxToCx(erow *row, int rx) {
   int cur_rx = 0;
-  int cx{};
+  size_t  cx{};
   for (cx = 0; cx < row->size; cx++) {
     if (row->chars[cx] == '\t')
       cur_rx += (KILO_TAB_STOP - 1) - (cur_rx % KILO_TAB_STOP);
@@ -513,7 +480,7 @@ void editorOpen(char *filename) {
   std::string line;
   std::getline(f, line);
   while (f.rdstate() == std::ios_base::goodbit) {
-    int linelen = line.size();
+    std::size_t linelen = line.size();
     while (linelen > 0 &&
            (line[linelen - 1] == '\n' || line[linelen - 1] == '\r'))
       linelen--;
@@ -755,6 +722,8 @@ void editorRefreshScreen(const Terminal &term) {
 
   ab.append(move_cursor((E.cy - E.rowoff) + 1, (E.rx - E.coloff) + 1));
 
+  ab.append(cursor_on());
+
   term.write(ab);
 }
 
@@ -981,4 +950,49 @@ int main(int argc, char *argv[]) {
   }
   return 0;
 }
+
+/* #include <functional> */
+/* #include <iostream> */
+/* #include <optional> */
+
+/* #include <CLI/CLI.hpp> */
+/* #include <spdlog/spdlog.h> */
+
+// This file will be generated automatically when you run the CMake configuration step.
+// It creates a namespace called `myproject`.
+// You can modify the source template at `configured_files/config.hpp.in`.
+/* #include <internal_use_only/config.hpp> */
+
+
+// NOLINTNEXTLINE(bugprone-exception-escape)
+/* int main(int argc, const char **argv) */
+/* { */
+/*   try { */
+/*     CLI::App app{ fmt::format("{} version {}", myproject::cmake::project_name, myproject::cmake::project_version) }; */
+
+/*     std::optional<std::string> message; */
+/*     app.add_option("-m,--message", message, "A message to print back out"); */
+/*     bool show_version = false; */
+/*     app.add_flag("--version", show_version, "Show version information"); */
+
+/*     CLI11_PARSE(app, argc, argv); */
+
+/*     if (show_version) { */
+/*       fmt::print("{}\n", myproject::cmake::project_version); */
+/*       return EXIT_SUCCESS; */
+/*     } */
+
+/*     // Use the default logger (stdout, multi-threaded, colored) */
+/*     spdlog::info("Hello, {}!", "World"); */
+
+/*     if (message) { */
+/*       fmt::print("Message: '{}'\n", *message); */
+/*     } else { */
+/*       fmt::print("No Message Provided :(\n"); */
+/*     } */
+/*   } catch (const std::exception &e) { */
+/*     spdlog::error("Unhandled exception in main: {}", e.what()); */
+/*   } */
+/* } */
+
 

@@ -20,8 +20,8 @@
 /*** defines ***/
 
 const std::string KILO_VERSION{"0.0.1"};
-const int KILO_TAB_STOP{8};
-const int KILO_QUIT_TIMES{3};
+const auto KILO_TAB_STOP{8};
+const auto KILO_QUIT_TIMES{3};
 
 using Term::Terminal;
 using Term::cursor_on;
@@ -59,7 +59,7 @@ struct editorSyntax {
 };
 
 typedef struct erow {
-  int idx;
+  std::size_t idx;
   std::size_t  size;
   std::size_t  rsize;
   char *chars;
@@ -69,13 +69,13 @@ typedef struct erow {
 } erow;
 
 struct editorConfig {
-  int cx, cy;
-  int rx;
-  int rowoff;
-  int coloff;
+  std::size_t cx, cy;
+  std::size_t rx;
+  std::size_t rowoff;
+  std::size_t coloff;
   int screenrows;
   int screencols;
-  int numrows;
+  std::size_t numrows;
   erow *row;
   int dirty;
   char *filename;
@@ -114,7 +114,7 @@ int is_separator(int c) {
 }
 
 void editorUpdateSyntax(erow *row) {
-  row->hl = (unsigned char *)realloc(row->hl, row->rsize);
+  row->hl = static_cast<unsigned char *>(realloc(row->hl, row->rsize));
   memset(row->hl, HL_NORMAL, row->rsize);
 
   if (E.syntax == nullptr)
@@ -137,7 +137,7 @@ void editorUpdateSyntax(erow *row) {
   size_t i = 0;
   while (i < row->rsize) {
     char c = row->render[i];
-    unsigned char prev_hl = (i > 0) ? row->hl[i - 1] : (char)HL_NORMAL;
+    unsigned char prev_hl = (i > 0) ? row->hl[i - 1] : static_cast<char>(HL_NORMAL);
 
     if (scs_len && !in_string && !in_comment) {
       if (!strncmp(&row->render[i], scs, scs_len)) {
@@ -267,7 +267,7 @@ void editorSelectSyntaxHighlight() {
           (!is_ext && strstr(E.filename, s->filematch[i]))) {
         E.syntax = s;
 
-        int filerow;
+        std::size_t filerow;
         for (filerow = 0; filerow < E.numrows; filerow++) {
           editorUpdateSyntax(&E.row[filerow]);
         }
@@ -281,9 +281,9 @@ void editorSelectSyntaxHighlight() {
 
 /*** row operations ***/
 
-int editorRowCxToRx(erow *row, int cx) {
-  int rx = 0;
-  for (int j = 0; j < cx; j++) {
+auto editorRowCxToRx(erow *row, int cx) {
+  auto rx = 0;
+  for (auto j = 0; j < cx; j++) {
     if (row->chars[j] == '\t')
       rx += (KILO_TAB_STOP - 1) - (rx % KILO_TAB_STOP);
     rx++;
@@ -306,16 +306,16 @@ size_t editorRowRxToCx(erow *row, int rx) {
 }
 
 void editorUpdateRow(erow *row) {
-  int tabs = 0;
-  for (int j = 0; j < row->size; j++)
+  auto tabs = 0;
+  for (auto j = 0; j < static_cast<int>(row->size); j++)
     if (row->chars[j] == '\t')
       tabs++;
 
   free(row->render);
-  row->render = (char *)malloc(row->size + tabs * (KILO_TAB_STOP - 1) + 1);
+  row->render = static_cast<char *>(malloc(static_cast<std::size_t>(static_cast<int>(row->size) + tabs * (KILO_TAB_STOP - 1) + 1)));
 
-  int idx = 0;
-  for (int j = 0; j < row->size; j++) {
+  auto idx = 0;
+  for (std::size_t j = 0; j < row->size; j++) {
     if (row->chars[j] == '\t') {
       row->render[idx++] = ' ';
       while (idx % KILO_TAB_STOP != 0)
@@ -325,24 +325,24 @@ void editorUpdateRow(erow *row) {
     }
   }
   row->render[idx] = '\0';
-  row->rsize = idx;
+  row->rsize = static_cast<std::size_t>(idx);
 
   editorUpdateSyntax(row);
 }
 
 void editorInsertRow(int at, const char *s, std::size_t len) {
-  if (at < 0 || at > E.numrows)
+  if (at < 0 || at > static_cast<int>(E.numrows))
     return;
 
-  E.row = (erow *)realloc(E.row, sizeof(erow) * (E.numrows + 1));
-  memmove(&E.row[at + 1], &E.row[at], sizeof(erow) * (E.numrows - at));
-  for (int j = at + 1; j <= E.numrows; j++)
+  E.row = static_cast<erow *>(realloc(E.row, sizeof(erow) * (E.numrows + 1)));
+  memmove(&E.row[at + 1], &E.row[at], sizeof(erow) * (E.numrows - static_cast<std::size_t>(at)));
+  for (auto j = static_cast<std::size_t>(at) + 1; j <= E.numrows; j++)
     E.row[j].idx++;
 
-  E.row[at].idx = at;
+  E.row[at].idx = static_cast<std::size_t>(at);
 
   E.row[at].size = len;
-  E.row[at].chars = (char *)malloc(len + 1);
+  E.row[at].chars = static_cast<char *>(malloc(len + 1));
   memcpy(E.row[at].chars, s, len);
   E.row[at].chars[len] = '\0';
 
@@ -363,29 +363,29 @@ void editorFreeRow(erow *row) {
 }
 
 void editorDelRow(int at) {
-  if (at < 0 || at >= E.numrows)
+  if (at < 0 || static_cast<std::size_t>(at) >= E.numrows)
     return;
   editorFreeRow(&E.row[at]);
-  memmove(&E.row[at], &E.row[at + 1], sizeof(erow) * (E.numrows - at - 1));
-  for (int j = at; j < E.numrows - 1; j++)
+  memmove(&E.row[at], &E.row[at + 1], sizeof(erow) * (E.numrows - static_cast<std::size_t>(at) - 1));
+  for (auto j = at; j < static_cast<int>(E.numrows) - 1; j++)
     E.row[j].idx--;
   E.numrows--;
   E.dirty++;
 }
 
 void editorRowInsertChar(erow *row, int at, int c) {
-  if (at < 0 || at > row->size)
-    at = row->size;
-  row->chars = (char *)realloc(row->chars, row->size + 2);
-  memmove(&row->chars[at + 1], &row->chars[at], row->size - at + 1);
+  if (at < 0 || static_cast<std::size_t>(at) > row->size)
+    at = static_cast<int>(row->size);
+  row->chars = static_cast<char *>(realloc(row->chars, row->size + 2));
+  memmove(&row->chars[at + 1], &row->chars[at], row->size - static_cast<std::size_t>(at) + 1);
   row->size++;
-  row->chars[at] = c;
+  row->chars[at] = static_cast<char>(c);
   editorUpdateRow(row);
   E.dirty++;
 }
 
 void editorRowAppendString(erow *row, char *s, size_t len) {
-  row->chars = (char *)realloc(row->chars, row->size + len + 1);
+  row->chars = static_cast<char *>(realloc(row->chars, row->size + len + 1));
   memcpy(&row->chars[row->size], s, len);
   row->size += len;
   row->chars[row->size] = '\0';
@@ -394,9 +394,9 @@ void editorRowAppendString(erow *row, char *s, size_t len) {
 }
 
 void editorRowDelChar(erow *row, int at) {
-  if (at < 0 || at >= row->size)
+  if (at < 0 || at >= static_cast<int>(row->size))
     return;
-  memmove(&row->chars[at], &row->chars[at + 1], row->size - at);
+  memmove(&row->chars[at], &row->chars[at + 1], row->size - static_cast<std::size_t>(at));
   row->size--;
   editorUpdateRow(row);
   E.dirty++;
@@ -406,18 +406,18 @@ void editorRowDelChar(erow *row, int at) {
 
 void editorInsertChar(int c) {
   if (E.cy == E.numrows) {
-    editorInsertRow(E.numrows, "", 0);
+    editorInsertRow(static_cast<int>(E.numrows), "", 0);
   }
-  editorRowInsertChar(&E.row[E.cy], E.cx, c);
+  editorRowInsertChar(&E.row[E.cy], static_cast<int>(E.cx), c);
   E.cx++;
 }
 
 void editorInsertNewLine() {
   if (E.cx == 0) {
-    editorInsertRow(E.cy, "", 0);
+    editorInsertRow(static_cast<int>(E.cy), "", 0);
   } else {
     erow *row = &E.row[E.cy];
-    editorInsertRow(E.cy + 1, &row->chars[E.cx], row->size - E.cx);
+    editorInsertRow(static_cast<int>(E.cy) + 1, &row->chars[E.cx], row->size - E.cx);
     row = &E.row[E.cy];
     row->size = E.cx;
     row->chars[row->size] = '\0';
@@ -435,12 +435,12 @@ void editorDelChar() {
 
   erow *row = &E.row[E.cy];
   if (E.cx > 0) {
-    editorRowDelChar(row, E.cx - 1);
+    editorRowDelChar(row, static_cast<int>(E.cx) - 1);
     E.cx--;
   } else {
     E.cx = E.row[E.cy - 1].size;
     editorRowAppendString(&E.row[E.cy - 1], row->chars, row->size);
-    editorDelRow(E.cy);
+    editorDelRow(static_cast<int>(E.cy));
     E.cy--;
   }
 }
@@ -448,14 +448,14 @@ void editorDelChar() {
 // /*** file i/o ***/
 
 char *editorRowsToString(int *buflen) {
-  int totlen = 0;
-  for (int j = 0; j < E.numrows; j++)
+  auto totlen = 0;
+  for (auto j = 0; j < static_cast<int>(E.numrows); j++)
     totlen += E.row[j].size + 1;
   *buflen = totlen;
 
-  char *buf = (char *)malloc(totlen);
+  char *buf = static_cast<char *>(malloc(static_cast<std::size_t>(totlen)));
   char *p = buf;
-  for (int j = 0; j < E.numrows; j++) {
+  for (auto j = 0; j < static_cast<int>(E.numrows); j++) {
     memcpy(p, E.row[j].chars, E.row[j].size);
     p += E.row[j].size;
     *p = '\n';
@@ -484,7 +484,7 @@ void editorOpen(char *filename) {
     while (linelen > 0 &&
            (line[linelen - 1] == '\n' || line[linelen - 1] == '\r'))
       linelen--;
-    editorInsertRow(E.numrows, line.c_str(), linelen);
+    editorInsertRow(static_cast<int>(E.numrows), line.c_str(), linelen);
     std::getline(f, line);
   }
   E.dirty = 0;
@@ -502,7 +502,7 @@ void editorSave(const Terminal &term) {
 
   int len;
   char *buf = editorRowsToString(&len);
-  std::string s = std::string(buf, len);
+  std::string s = std::string(buf, static_cast<std::size_t>(len));
   free(buf);
 
   std::ofstream out;
@@ -544,23 +544,23 @@ void editorFindCallback(char *query, int key) {
     direction = 1;
   int current = last_match;
   int i;
-  for (i = 0; i < E.numrows; i++) {
+  for (i = 0; i < static_cast<int>(E.numrows); i++) {
     current += direction;
     if (current == -1)
-      current = E.numrows - 1;
-    else if (current == E.numrows)
+      current = static_cast<int>(E.numrows) - 1;
+    else if (current == static_cast<int>(E.numrows))
       current = 0;
 
     erow *row = &E.row[current];
     char *match = strstr(row->render, query);
     if (match) {
       last_match = current;
-      E.cy = current;
-      E.cx = editorRowRxToCx(row, match - row->render);
+      E.cy = static_cast<std::size_t>(current);
+      E.cx = editorRowRxToCx(row, static_cast<int>(match - row->render));
       E.rowoff = E.numrows;
 
       saved_hl_line = current;
-      saved_hl = (char *)malloc(row->size);
+      saved_hl = static_cast<char *>(malloc(row->size));
       memcpy(saved_hl, row->hl, row->rsize);
       memset(&row->hl[match - row->render], HL_MATCH, strlen(query));
       break;
@@ -569,10 +569,10 @@ void editorFindCallback(char *query, int key) {
 }
 
 void editorFind(const Terminal &term) {
-  int saved_cx = E.cx;
-  int saved_cy = E.cy;
-  int saved_coloff = E.coloff;
-  int saved_rowoff = E.rowoff;
+  auto saved_cx = E.cx;
+  auto saved_cy = E.cy;
+  auto saved_coloff = E.coloff;
+  auto saved_rowoff = E.rowoff;
 
   char *query =
       editorPrompt(term, "Search: %s (ESC/Arrows/Enter)", editorFindCallback);
@@ -592,27 +592,27 @@ void editorFind(const Terminal &term) {
 void editorScroll() {
   E.rx = 0;
   if (E.cy < E.numrows) {
-    E.rx = editorRowCxToRx(&E.row[E.cy], E.cx);
+    E.rx = static_cast<std::size_t>(editorRowCxToRx(&E.row[E.cy], static_cast<int>(E.cx)));
   }
   if (E.cy < E.rowoff) {
     E.rowoff = E.cy;
   }
-  if (E.cy >= E.rowoff + E.screenrows) {
-    E.rowoff = E.cy - E.screenrows + 1;
+  if (E.cy >= E.rowoff + static_cast<std::size_t>(E.screenrows)) {
+    E.rowoff = E.cy - static_cast<std::size_t>(E.screenrows + 1);
   }
   if (E.cx < E.coloff) {
     E.coloff = E.rx;
   }
-  if (E.rx >= E.coloff + E.screencols) {
-    E.coloff = E.rx - E.screencols + 1;
+  if (E.rx >= E.coloff + static_cast<std::size_t>(E.screencols)) {
+    E.coloff = E.rx - static_cast<std::size_t>(E.screencols) + 1;
   }
 }
 
 void editorDrawRows(std::string &ab) {
   int y;
   for (y = 0; y < E.screenrows; y++) {
-    int filerow = y + E.rowoff;
-    if (filerow >= E.numrows) {
+    int filerow = y + static_cast<int>(E.rowoff);
+    if (filerow >= static_cast<int>(E.numrows)) {
       if (E.numrows == 0 && y == E.screenrows / 3) {
         char welcome[80];
         int welcomelen =
@@ -632,7 +632,7 @@ void editorDrawRows(std::string &ab) {
         ab.append("~");
       }
     } else {
-      int len = E.row[filerow].rsize - E.coloff;
+      int len = static_cast<int>(E.row[filerow].rsize - E.coloff);
       if (len < 0)
         len = 0;
       if (len > E.screencols)
@@ -676,18 +676,18 @@ void editorDrawRows(std::string &ab) {
 void editorDrawStatusBar(std::string &ab) {
   ab.append(color(style::reversed));
   char status[80], rstatus[80];
-  int len = snprintf(status, sizeof(status), "%.20s - %d lines %s",
-                     E.filename ? E.filename : "[No Name]", E.numrows,
+  int len = snprintf(status, sizeof(status), "%.20s - %u lines %s",
+                     E.filename ? E.filename : "[No Name]", static_cast<unsigned int>(E.numrows),
                      E.dirty ? "(modified)" : "");
   int rlen =
-      snprintf(rstatus, sizeof(rstatus), "%s | %d/%d",
-               E.syntax ? E.syntax->filetype : "no ft", E.cy + 1, E.numrows);
+      snprintf(rstatus, sizeof(rstatus), "%s | %u/%u",
+               E.syntax ? E.syntax->filetype : "no ft", static_cast<unsigned int>(E.cy) + 1, static_cast<unsigned int>(E.numrows));
   if (len > E.screencols)
     len = E.screencols;
-  ab.append(std::string(status, len));
+  ab.append(std::string(status, static_cast<std::size_t>(len)));
   while (len < E.screencols) {
     if (E.screencols - len == rlen) {
-      ab.append(std::string(rstatus, rlen));
+      ab.append(std::string(rstatus, static_cast<std::size_t>(rlen)));
       break;
     } else {
       ab.append(" ");
@@ -700,11 +700,11 @@ void editorDrawStatusBar(std::string &ab) {
 
 void editorDrawMessageBar(std::string &ab) {
   ab.append(erase_to_eol());
-  int msglen = strlen(E.statusmsg);
+  int msglen = static_cast<int>(strlen(E.statusmsg));
   if (msglen > E.screencols)
     msglen = E.screencols;
   if (msglen && time(NULL) - E.statusmsg_time < 5)
-    ab.append(std::string(E.statusmsg, msglen));
+    ab.append(std::string(E.statusmsg, static_cast<std::size_t>(msglen)));
 }
 
 void editorRefreshScreen(const Terminal &term) {
@@ -730,7 +730,7 @@ void editorRefreshScreen(const Terminal &term) {
 void editorSetStatusMessage(const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
-  vsnprintf(E.statusmsg, sizeof(E.statusmsg), fmt, ap);
+  vsnprintf(E.statusmsg, sizeof(E.statusmsg), "%d", ap); // THIS IS PROBABLY WRONG !!!
   va_end(ap);
   E.statusmsg_time = time(NULL);
 }
@@ -739,7 +739,7 @@ void editorSetStatusMessage(const char *fmt, ...) {
 
 char *editorPrompt(const Terminal &term, const char *prompt, void (*callback)(char *, int)) {
   std::size_t bufsize = 128;
-  char *buf = (char *)malloc(bufsize);
+  char *buf = static_cast<char *>(malloc(bufsize));
 
   std::size_t buflen = 0;
   buf[0] = '\0';
@@ -769,9 +769,9 @@ char *editorPrompt(const Terminal &term, const char *prompt, void (*callback)(ch
     } else if (!iscntrl(c) && c < 128) {
       if (buflen == bufsize - 1) {
         bufsize *= 2;
-        buf = (char *)realloc(buf, bufsize);
+        buf = static_cast<char *>(realloc(buf, bufsize));
       }
-      buf[buflen++] = c;
+      buf[buflen++] = static_cast<char>(c);
       buf[buflen] = '\0';
     }
 
@@ -813,9 +813,9 @@ void editorMoveCursor(int key) {
   }
 
   row = (E.cy >= E.numrows) ? nullptr : &E.row[E.cy];
-  int rowlen = row ? row->size : 0;
-  if (E.cx > rowlen) {
-    E.cx = rowlen;
+  int rowlen = row ? static_cast<int>(row->size) : 0;
+  if (static_cast<int>(E.cx) > rowlen) {
+    E.cx = static_cast<std::size_t>(rowlen);
   }
 }
 
@@ -870,7 +870,7 @@ bool editorProcessKeypress(const Terminal &term) {
     if (c == Key::PAGE_UP) {
       E.cy = E.rowoff;
     } else if (c == Key::PAGE_DOWN) {
-      E.cy = E.rowoff + E.screenrows - 1;
+      E.cy = E.rowoff + static_cast<std::size_t>(E.screenrows) - 1;
       if (E.cy > E.numrows)
         E.cy = E.numrows;
     }

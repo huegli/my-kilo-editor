@@ -19,8 +19,8 @@
 #include <string>
 #include <vector>
 
-#define CTRL_KEY(k) (char)(((unsigned char)(k) & 0x1f))
-#define ALT_KEY(k) (char)(((unsigned char)(k) + 0x80))
+#define CTRL_KEY(k) static_cast<char>((static_cast<unsigned char>(k) & 0x1f))
+#define ALT_KEY(k) static_cast<char>((static_cast<unsigned char>(k) + 0x80))
 
 namespace Term {
 
@@ -421,7 +421,9 @@ public:
         get_cursor_position(old_row, old_col);
         write(move_cursor_right(999) + move_cursor_down(999));
         get_cursor_position(rows, cols);
-        write(move_cursor(old_row, old_col));
+        write(move_cursor(
+                  static_cast<std::size_t>(old_row),
+                  static_cast<std::size_t>(old_col)));
     }
 };
 
@@ -472,19 +474,19 @@ inline void codepoint_to_utf8(std::string &s, char32_t c) {
     char32_t d = c;
     if (c >= 0x10000) {
         nbytes++;
-        bytes[3] = ((d | 0x80) & 0xBF); d >>= 6;
+        bytes[3] = static_cast<char>((d | 0x80) & 0xBF); d >>= 6;
     }
     if (c >= 0x800) {
         nbytes++;
-        bytes[2] = ((d | 0x80) & 0xBF); d >>= 6;
+        bytes[2] = static_cast<char>((d | 0x80) & 0xBF); d >>= 6;
     }
     if (c >= 0x80) {
         nbytes++;
-        bytes[1] = ((d | 0x80) & 0xBF); d >>= 6;
+        bytes[1] = static_cast<char>((d | 0x80) & 0xBF); d >>= 6;
     }
     static const unsigned char mask[4] = {0x00, 0xC0, 0xE0, 0xF0};
     bytes[0] = static_cast<char>(d | mask[nbytes-1]);
-    s.append(bytes, nbytes);
+    s.append(bytes, static_cast<std::size_t>(nbytes));
 }
 
 /*----------------------------------------------------------------------------*/
@@ -496,7 +498,7 @@ inline std::u32string utf8_to_utf32(const std::string &s)
     uint8_t state=UTF8_ACCEPT;
     std::u32string r;
     for (size_t i=0; i < s.size(); i++) {
-        state = utf8_decode_step(state, s[i], &codepoint);
+        state = utf8_decode_step(state, static_cast<uint8_t>(s[i]), &codepoint);
         if (state == UTF8_ACCEPT) {
             r.push_back(codepoint);
         }
@@ -583,9 +585,9 @@ public:
     void print_str(int x, int y, const std::string &s) {
         std::u32string s2 = utf8_to_utf32(s);
         for (size_t i=0; i < s2.size(); i++) {
-            size_t xpos = x+i;
+            size_t xpos = static_cast<std::size_t>(x)+i;
             if (xpos < w) {
-                set_char(xpos, y, s2[i]);
+                set_char(xpos, static_cast<std::size_t>(y), s2[i]);
             } else {
                 // String is out of the window
                 return;
@@ -596,7 +598,8 @@ public:
     void fill_fg(int x1, int y1, int x2, int y2, fg color) {
         for (int j=y1; j <= y2; j++) {
             for (int i=x1; i <= x2; i++) {
-                set_fg(i, j, color);
+                set_fg(static_cast<std::size_t>(i),
+                       static_cast<std::size_t>(j), color);
             }
         }
     }
@@ -604,7 +607,8 @@ public:
     void fill_bg(int x1, int y1, int x2, int y2, bg color) {
         for (int j=y1; j <= y2; j++) {
             for (int i=x1; i <= x2; i++) {
-                set_bg(i, j, color);
+                set_bg(static_cast<std::size_t>(i),
+                       static_cast<std::size_t>(j), color);
             }
         }
     }
@@ -612,7 +616,8 @@ public:
     void fill_style(int x1, int y1, int x2, int y2, style color) {
         for (int j=y1; j <= y2; j++) {
             for (int i=x1; i <= x2; i++) {
-                set_style(i, j, color);
+                set_style(static_cast<std::size_t>(i),
+                          static_cast<std::size_t>(j), color);
             }
         }
     }

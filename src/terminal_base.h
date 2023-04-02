@@ -122,15 +122,15 @@ public:
 
             // Put terminal in raw mode
             struct termios raw = orig_termios;
-            raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
+            raw.c_iflag &= static_cast<unsigned int>(~(BRKINT | ICRNL | INPCK | ISTRIP | IXON));
             // This disables output post-processing, requiring explicit \r\n. We
             // keep it enabled, so that in C++, one can still just use std::endl
             // for EOL instead of "\r\n".
             //raw.c_oflag &= ~(OPOST);
             raw.c_cflag |= (CS8);
-            raw.c_lflag &= ~(ECHO | ICANON | IEXTEN);
+            raw.c_lflag &= static_cast<unsigned int>(~(ECHO | ICANON | IEXTEN));
             if (disable_ctrl_c) {
-                raw.c_lflag &= ~(ISIG);
+                raw.c_lflag &= static_cast<unsigned int>(~(ISIG));
             }
             raw.c_cc[VMIN] = 0;
             raw.c_cc[VTIME] = 0;
@@ -189,7 +189,7 @@ public:
             return false;
         }
 #else
-        int nread = read(STDIN_FILENO, s, 1);
+        long nread = read(STDIN_FILENO, s, 1);
         if (nread == -1 && errno != EAGAIN) {
             throw std::runtime_error("read() failed");
         }

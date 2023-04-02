@@ -94,7 +94,6 @@ include(${_project_options_SOURCE_DIR}/src/DynamicProjectOptions.cmake)
 # set(<feature_name>_DEVELOPER_DEFAULT <value>) - set default for developer mode
 # set(<feature_name>_USER_DEFAULT <value>) - set default for user mode
 
-set(ENABLE_CLANG_TIDY_DEFAULT OFF)
 set(ENABLE_CPPCHECK_DEFAULT OFF)
 
 # Initialize project_options variable related to this project

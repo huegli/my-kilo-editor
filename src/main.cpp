@@ -455,16 +455,19 @@ char *editorRowsToString(int *buflen) {
     totlen += E.row[j].size + 1;
   *buflen = totlen;
 
-  char *buf = static_cast<char *>(malloc(static_cast<std::size_t>(totlen)));
-  char *p = buf;
-  for (auto j = 0; j < static_cast<int>(E.numrows); j++) {
-    memcpy(p, E.row[j].chars, E.row[j].size);
-    p += E.row[j].size;
-    *p = '\n';
-    p++;
+  if (totlen > 0) {
+    char *buf = static_cast<char *>(malloc(static_cast<std::size_t>(totlen)));
+    char *p = buf;
+    for (auto j = 0; j < static_cast<int>(E.numrows); j++) {
+      memcpy(p, E.row[j].chars, E.row[j].size);
+      p += E.row[j].size;
+      *p = '\n';
+      p++;
+    }
+    return buf;
   }
-
-  return buf;
+  else 
+    return nullptr; 
 }
 
 void editorOpen(char *filename) {

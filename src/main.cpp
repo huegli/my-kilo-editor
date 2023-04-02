@@ -184,7 +184,7 @@ void editorUpdateSyntax(erow *row) {
         continue;
       } else {
         if (c == '"' || c == '\'') {
-          in_string = c;
+          in_string = static_cast<unsigned char>(c);
           row->hl[i] = HL_STRING;
           i++;
           continue;

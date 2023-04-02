@@ -104,8 +104,10 @@ struct editorSyntax HLDB[] = {
 
 // /*** prototypes ***/
 
-char *editorPrompt(const Terminal &term, const char *prompt, void (*callback)(char *, int));
-void editorSetStatusMessage(const char *fmt, ...);
+char *editorPrompt(const Terminal &term, const char *prompt1, const char *prompt2, void (*callback)(char *, int));
+void editorSetStatusMessage();
+void editorSetStatusMessage(const char *msg);
+void editorSetStatusMessage(const char *fmt, const char *buf);
 
 // /*** syntax highlighting ***/
 
@@ -492,7 +494,7 @@ void editorOpen(char *filename) {
 
 void editorSave(const Terminal &term) {
   if (E.filename == nullptr) {
-    E.filename = editorPrompt(term, "Save as: %s (ESC to cancel)", nullptr);
+    E.filename = editorPrompt(term, "Save as: ", " (ESC to cancel)", nullptr);
     if (E.filename == nullptr) {
       editorSetStatusMessage("Save aborted");
       return;
@@ -510,7 +512,7 @@ void editorSave(const Terminal &term) {
   out << s;
   out.close();
   E.dirty = 0;
-  editorSetStatusMessage("Can't save! I/O error: %s", strerror(errno));
+  /* editorSetStatusMessage("Can't save! I/O error: %s", strerror(errno)); */
 }
 
 // /*** find ***/
@@ -575,7 +577,7 @@ void editorFind(const Terminal &term) {
   auto saved_rowoff = E.rowoff;
 
   char *query =
-      editorPrompt(term, "Search: %s (ESC/Arrows/Enter)", editorFindCallback);
+      editorPrompt(term, "Search: ", " (ESC/Arrows/Enter)", editorFindCallback);
 
   if (query) {
     free(query);
@@ -727,25 +729,34 @@ void editorRefreshScreen(const Terminal &term) {
   term.write(ab);
 }
 
-void editorSetStatusMessage(const char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  vsnprintf(E.statusmsg, sizeof(E.statusmsg), "%d", ap); // THIS IS PROBABLY WRONG !!!
-  va_end(ap);
+void editorSetStatusMessage() {
+  E.statusmsg[0] = '\0';
   E.statusmsg_time = time(NULL);
 }
 
+void editorSetStatusMessage(const char *msg) {
+  strcpy(E.statusmsg, msg);
+  E.statusmsg_time = time(NULL);
+}
+
+/* void editorSetStatusMessage(const char *fmt, const char *msg) { */
+/*   snprintf(E.statusmsg, sizeof(E.statusmsg), fmt,  msg); */ 
+/*   E.statusmsg_time = time(NULL); */
+/* } */
+
 // /*** input ***/
 
-char *editorPrompt(const Terminal &term, const char *prompt, void (*callback)(char *, int)) {
+char *editorPrompt(const Terminal &term, const char *prompt1, const char *prompt2, void (*callback)(char *, int)) {
   std::size_t bufsize = 128;
   char *buf = static_cast<char *>(malloc(bufsize));
 
   std::size_t buflen = 0;
   buf[0] = '\0';
+  char outbuf[256];
 
   while (true) {
-    editorSetStatusMessage(prompt, buf);
+    snprintf(outbuf, sizeof(outbuf), "%s%s%s", prompt1, buf, prompt2);
+    editorSetStatusMessage(outbuf);
     editorRefreshScreen(term);
 
     int c = term.read_key();
@@ -754,14 +765,14 @@ char *editorPrompt(const Terminal &term, const char *prompt, void (*callback)(ch
       if (buflen != 0)
         buf[--buflen] = '\0';
     } else if (c == Key::ESC) {
-      editorSetStatusMessage("");
+      editorSetStatusMessage();
       if (callback)
         callback(buf, c);
       free(buf);
       return nullptr;
     } else if (c == Key::ENTER) {
       if (buflen != 0) {
-        editorSetStatusMessage("");
+        editorSetStatusMessage();
         if (callback)
           callback(buf, c);
         return buf;
@@ -831,9 +842,11 @@ bool editorProcessKeypress(const Terminal &term) {
 
   case CTRL_KEY('q'):
     if (E.dirty && quit_times > 0) {
-      editorSetStatusMessage("WARNING!!! File has unsaved changes. "
-                             "Press Ctrl-Q %d more times to quit.",
-                             quit_times);
+      char buf[256];
+      snprintf(buf, sizeof(buf), 
+          "WARNING!!! File has unsaved changes. "
+          "Press Ctrl-Q %d more times to quit.", quit_times);
+      editorSetStatusMessage(buf);
       quit_times--;
       return true;
     }

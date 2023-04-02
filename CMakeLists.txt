@@ -14,11 +14,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # is enabled and all warnings are treated as errors
 # if you want to switch this behavior, change TRUE to FALSE
 set(ENABLE_DEVELOPER_MODE
-  FALSE 
+    TRUE
     CACHE BOOL "Enable 'developer mode'")
 
 # Change this to false if you want to disable warnings_as_errors in developer mode
-set(OPT_WARNINGS_AS_ERRORS_DEVELOPER_DEFAULT FALSE)
+set(OPT_WARNINGS_AS_ERRORS_DEVELOPER_DEFAULT TRUE)
 
 # Add project_options v0.20.0
 # https://github.com/cpp-best-practices/project_options

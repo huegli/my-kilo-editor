@@ -7,15 +7,15 @@
 #include <fstream>
 #include <memory>
 
-#include <ctype.h>
-#include <errno.h>
+#include <cctype>
+#include <cerrno>
 #include <fcntl.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdarg>
+#include <cstdlib>
+#include <cstring>
 #include <sys/types.h>
-#include <time.h>
+#include <ctime>
 
 /*** defines ***/
 
@@ -735,7 +735,7 @@ void editorSetStatusMessage() {
 }
 
 void editorSetStatusMessage(const char *msg) {
-  strcpy(E.statusmsg, msg);
+  strncpy(E.statusmsg, msg, sizeof(E.statusmsg));
   E.statusmsg_time = time(NULL);
 }
 

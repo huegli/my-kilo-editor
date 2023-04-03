@@ -603,7 +603,7 @@ void editorScroll() {
     E.rowoff = E.cy;
   }
   if (E.cy >= E.rowoff + static_cast<std::size_t>(E.screenrows)) {
-    E.rowoff = E.cy - static_cast<std::size_t>(E.screenrows + 1);
+    E.rowoff = E.cy - static_cast<std::size_t>(E.screenrows)+ 1;
   }
   if (E.cx < E.coloff) {
     E.coloff = E.rx;
@@ -637,7 +637,8 @@ void editorDrawRows(std::string &ab) {
         ab.append("~");
       }
     } else {
-      int len = static_cast<int>(E.row[filerow].rsize - E.coloff);
+      int len = static_cast<int>(E.row[filerow].rsize) - 
+        static_cast<int>(E.coloff);
       if (len < 0)
         len = 0;
       if (len > E.screencols)

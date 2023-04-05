@@ -111,7 +111,7 @@ void editorSetStatusMessage(const char *fmt, const char *buf);
 
 // /*** syntax highlighting ***/
 
-int is_separator(int c) {
+bool is_separator(char c) {
   return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c) != nullptr;
 }
 
@@ -122,24 +122,24 @@ void editorUpdateSyntax(erow *row) {
   if (E.syntax == nullptr)
     return;
 
-  const char **keywords = E.syntax->keywords;
+  const auto **keywords = E.syntax->keywords;
 
-  const char *scs = E.syntax->singleline_comment_start;
-  const char *mcs = E.syntax->multiline_comment_start;
-  const char *mce = E.syntax->multiline_comment_end;
+  const auto *scs = E.syntax->singleline_comment_start;
+  const auto *mcs = E.syntax->multiline_comment_start;
+  const auto *mce = E.syntax->multiline_comment_end;
 
-  size_t scs_len = scs ? strlen(scs) : 0;
-  size_t mcs_len = mcs ? strlen(mcs) : 0;
-  size_t mce_len = mce ? strlen(mce) : 0;
+  auto scs_len = scs ? strlen(scs) : 0;
+  auto mcs_len = mcs ? strlen(mcs) : 0;
+  auto mce_len = mce ? strlen(mce) : 0;
 
-  int prev_sep = 1;
-  int in_string = 0;
-  int in_comment = (row->idx > 0 && E.row[row->idx - 1].hl_open_comment);
+  auto prev_sep = true;
+  auto in_string = 0;
+  auto in_comment = (row->idx > 0 && E.row[row->idx - 1].hl_open_comment);
 
   size_t i = 0;
   while (i < row->rsize) {
-    char c = row->render[i];
-    unsigned char prev_hl = (i > 0) ? row->hl[i - 1] : static_cast<char>(HL_NORMAL);
+    auto c = row->render[i];
+    auto prev_hl = (i > 0) ? row->hl[i - 1] : HL_NORMAL;
 
     if (scs_len && !in_string && !in_comment) {
       if (!strncmp(&row->render[i], scs, scs_len)) {
@@ -155,7 +155,7 @@ void editorUpdateSyntax(erow *row) {
           memset(&row->hl[i], HL_MLCOMMENT, mce_len);
           i += mce_len;
           in_comment = 0;
-          prev_sep = 1;
+          prev_sep = true;
           continue;
         } else {
           i++;
@@ -180,7 +180,7 @@ void editorUpdateSyntax(erow *row) {
         if (c == in_string)
           in_string = 0;
         i++;
-        prev_sep = 1;
+        prev_sep = true;
         continue;
       } else {
         if (c == '"' || c == '\'') {
@@ -197,7 +197,7 @@ void editorUpdateSyntax(erow *row) {
           (c == '.' && prev_hl == HL_NUMBER)) {
         row->hl[i] = HL_NUMBER;
         i++;
-        prev_sep = 0;
+        prev_sep = false;
         continue;
       }
     }
@@ -205,8 +205,8 @@ void editorUpdateSyntax(erow *row) {
     if (prev_sep) {
       int j;
       for (j = 0; keywords[j]; j++) {
-        size_t klen = strlen(keywords[j]);
-        size_t kw2 = keywords[j][klen - 1] == '|';
+        auto klen = strlen(keywords[j]);
+        auto kw2 = keywords[j][klen - 1] == '|';
         if (kw2)
           klen--;
 
@@ -218,7 +218,7 @@ void editorUpdateSyntax(erow *row) {
         }
       }
       if (keywords[j] != nullptr) {
-        prev_sep = 0;
+        prev_sep = false;
         continue;
       }
     }
@@ -227,7 +227,7 @@ void editorUpdateSyntax(erow *row) {
     i++;
   }
 
-  int changed = (row->hl_open_comment != in_comment);
+  auto changed = (row->hl_open_comment != in_comment);
   row->hl_open_comment = in_comment;
   if (changed && row->idx + 1 < E.numrows)
     editorUpdateSyntax(&E.row[row->idx + 1]);

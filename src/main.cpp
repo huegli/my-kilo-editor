@@ -20,8 +20,8 @@
 /*** defines ***/
 
 const std::string KILO_VERSION{"0.0.1"};
-const auto KILO_TAB_STOP{8};
-const auto KILO_QUIT_TIMES{3};
+const std::size_t KILO_TAB_STOP{8};
+const std::size_t KILO_QUIT_TIMES{3};
 
 using Term::Terminal;
 using Term::cursor_on;
@@ -233,7 +233,7 @@ void editorUpdateSyntax(erow *row) {
     editorUpdateSyntax(&E.row[row->idx + 1]);
 }
 
-fg editorSyntaxToColor(int hl) {
+auto editorSyntaxToColor(int hl) {
   switch (hl) {
   case HL_COMMENT:
   case HL_MLCOMMENT:
@@ -258,19 +258,18 @@ void editorSelectSyntaxHighlight() {
   if (E.filename == nullptr)
     return;
 
-  char *ext = strrchr(E.filename, '.');
+  auto *ext = strrchr(E.filename, '.');
 
-  for (std::size_t j = 0; j != HLDB_ENTRIES; ++j) {
-    struct editorSyntax *s = &HLDB[j];
+  for (auto j = 0; j != HLDB_ENTRIES; ++j) {
+    auto *s = &HLDB[j];
     unsigned int i = 0;
     while (s->filematch[i]) {
-      int is_ext = (s->filematch[i][0] == '.');
+      auto is_ext = (s->filematch[i][0] == '.');
       if ((is_ext && ext && !strcmp(ext, s->filematch[i])) ||
           (!is_ext && strstr(E.filename, s->filematch[i]))) {
         E.syntax = s;
 
-        std::size_t filerow;
-        for (filerow = 0; filerow < E.numrows; filerow++) {
+        for (std::size_t filerow = 0; filerow < E.numrows; filerow++) {
           editorUpdateSyntax(&E.row[filerow]);
         }
 
@@ -283,9 +282,9 @@ void editorSelectSyntaxHighlight() {
 
 /*** row operations ***/
 
-auto editorRowCxToRx(erow *row, int cx) {
-  auto rx = 0;
-  for (auto j = 0; j < cx; j++) {
+auto editorRowCxToRx(erow *row, std::size_t cx) {
+  std::size_t rx = 0;
+  for (std::size_t j = 0; j < cx; j++) {
     if (row->chars[j] == '\t')
       rx += (KILO_TAB_STOP - 1) - (rx % KILO_TAB_STOP);
     rx++;
@@ -293,9 +292,9 @@ auto editorRowCxToRx(erow *row, int cx) {
   return rx;
 }
 
-size_t editorRowRxToCx(erow *row, int rx) {
-  int cur_rx = 0;
-  size_t  cx{};
+auto editorRowRxToCx(erow *row, std::size_t rx) {
+  std::size_t cur_rx = 0;
+  std::size_t cx = 0;
   for (cx = 0; cx < row->size; cx++) {
     if (row->chars[cx] == '\t')
       cur_rx += (KILO_TAB_STOP - 1) - (cur_rx % KILO_TAB_STOP);
@@ -308,15 +307,15 @@ size_t editorRowRxToCx(erow *row, int rx) {
 }
 
 void editorUpdateRow(erow *row) {
-  auto tabs = 0;
-  for (auto j = 0; j < static_cast<int>(row->size); j++)
+  std::size_t tabs = 0;
+  for (std::size_t j = 0; j < row->size; j++)
     if (row->chars[j] == '\t')
       tabs++;
 
   free(row->render);
-  row->render = static_cast<char *>(malloc(static_cast<std::size_t>(static_cast<int>(row->size) + tabs * (KILO_TAB_STOP - 1) + 1)));
+  row->render = static_cast<char *>(malloc(row->size + tabs * (KILO_TAB_STOP - 1) + 1));
 
-  auto idx = 0;
+  std::size_t idx = 0;
   for (std::size_t j = 0; j < row->size; j++) {
     if (row->chars[j] == '\t') {
       row->render[idx++] = ' ';
@@ -561,7 +560,7 @@ void editorFindCallback(char *query, int key) {
     if (match) {
       last_match = current;
       E.cy = static_cast<std::size_t>(current);
-      E.cx = editorRowRxToCx(row, static_cast<int>(match - row->render));
+      E.cx = editorRowRxToCx(row, static_cast<std::size_t>(match - row->render));
       E.rowoff = E.numrows;
 
       saved_hl_line = current;
@@ -597,7 +596,7 @@ void editorFind(const Terminal &term) {
 void editorScroll() {
   E.rx = 0;
   if (E.cy < E.numrows) {
-    E.rx = static_cast<std::size_t>(editorRowCxToRx(&E.row[E.cy], static_cast<int>(E.cx)));
+    E.rx = editorRowCxToRx(&E.row[E.cy], E.cx);
   }
   if (E.cy < E.rowoff) {
     E.rowoff = E.cy;

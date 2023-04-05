@@ -111,7 +111,7 @@ void editorSetStatusMessage(const char *fmt, const char *buf);
 
 // /*** syntax highlighting ***/
 
-bool is_separator(char c) {
+bool is_separator(const char c) {
   return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c) != nullptr;
 }
 
@@ -233,7 +233,7 @@ void editorUpdateSyntax(erow *row) {
     editorUpdateSyntax(&E.row[row->idx + 1]);
 }
 
-auto editorSyntaxToColor(int hl) {
+auto editorSyntaxToColor(const int hl) {
   switch (hl) {
   case HL_COMMENT:
   case HL_MLCOMMENT:
@@ -282,7 +282,7 @@ void editorSelectSyntaxHighlight() {
 
 /*** row operations ***/
 
-auto editorRowCxToRx(erow *row, std::size_t cx) {
+auto editorRowCxToRx(const erow *row, const std::size_t cx) {
   std::size_t rx = 0;
   for (std::size_t j = 0; j < cx; j++) {
     if (row->chars[j] == '\t')
@@ -292,7 +292,7 @@ auto editorRowCxToRx(erow *row, std::size_t cx) {
   return rx;
 }
 
-auto editorRowRxToCx(erow *row, std::size_t rx) {
+auto editorRowRxToCx(const erow *row, const std::size_t rx) {
   std::size_t cur_rx = 0;
   std::size_t cx = 0;
   for (cx = 0; cx < row->size; cx++) {
@@ -331,16 +331,18 @@ void editorUpdateRow(erow *row) {
   editorUpdateSyntax(row);
 }
 
-void editorInsertRow(int at, const char *s, std::size_t len) {
+void editorInsertRow(const int at, const char *s, const std::size_t len) {
   if (at < 0 || at > static_cast<int>(E.numrows))
     return;
 
+  auto idx = static_cast<std::size_t>(at);
+
   E.row = static_cast<erow *>(realloc(E.row, sizeof(erow) * (E.numrows + 1)));
-  memmove(&E.row[at + 1], &E.row[at], sizeof(erow) * (E.numrows - static_cast<std::size_t>(at)));
-  for (auto j = static_cast<std::size_t>(at) + 1; j <= E.numrows; j++)
+  memmove(&E.row[idx + 1], &E.row[idx], sizeof(erow) * (E.numrows - idx));
+  for (auto j = idx + 1; j <= E.numrows; j++)
     E.row[j].idx++;
 
-  E.row[at].idx = static_cast<std::size_t>(at);
+  E.row[at].idx = idx;
 
   E.row[at].size = len;
   E.row[at].chars = static_cast<char *>(malloc(len + 1));
@@ -351,7 +353,7 @@ void editorInsertRow(int at, const char *s, std::size_t len) {
   E.row[at].render = nullptr;
   E.row[at].hl = nullptr;
   E.row[at].hl_open_comment = 0;
-  editorUpdateRow(&E.row[at]);
+  editorUpdateRow(&E.row[idx]);
 
   E.numrows++;
   E.dirty++;
@@ -363,29 +365,32 @@ void editorFreeRow(erow *row) {
   free(row->hl);
 }
 
-void editorDelRow(int at) {
+void editorDelRow(const int at) {
   if (at < 0 || static_cast<std::size_t>(at) >= E.numrows)
     return;
-  editorFreeRow(&E.row[at]);
-  memmove(&E.row[at], &E.row[at + 1], sizeof(erow) * (E.numrows - static_cast<std::size_t>(at) - 1));
-  for (auto j = at; j < static_cast<int>(E.numrows) - 1; j++)
+
+  auto idx = static_cast<std::size_t>(at);
+  editorFreeRow(&E.row[idx]);
+  memmove(&E.row[idx], &E.row[idx + 1], sizeof(erow) * (E.numrows - idx - 1));
+  for (auto j = idx; j < idx - 1; j++)
     E.row[j].idx--;
   E.numrows--;
   E.dirty++;
 }
 
-void editorRowInsertChar(erow *row, int at, int c) {
+void editorRowInsertChar(erow *row, const int at, const char c) {
+  auto idx = static_cast<std::size_t>(at);
   if (at < 0 || static_cast<std::size_t>(at) > row->size)
-    at = static_cast<int>(row->size);
+     idx = row->size;
   row->chars = static_cast<char *>(realloc(row->chars, row->size + 2));
-  memmove(&row->chars[at + 1], &row->chars[at], row->size - static_cast<std::size_t>(at) + 1);
+  memmove(&row->chars[idx + 1], &row->chars[idx], row->size - idx + 1);
   row->size++;
-  row->chars[at] = static_cast<char>(c);
+  row->chars[idx] = c;
   editorUpdateRow(row);
   E.dirty++;
 }
 
-void editorRowAppendString(erow *row, char *s, size_t len) {
+void editorRowAppendString(erow *row, const char *s, const size_t len) {
   row->chars = static_cast<char *>(realloc(row->chars, row->size + len + 1));
   memcpy(&row->chars[row->size], s, len);
   row->size += len;
@@ -394,10 +399,11 @@ void editorRowAppendString(erow *row, char *s, size_t len) {
   E.dirty++;
 }
 
-void editorRowDelChar(erow *row, int at) {
+void editorRowDelChar(erow *row, const int at) {
   if (at < 0 || at >= static_cast<int>(row->size))
     return;
-  memmove(&row->chars[at], &row->chars[at + 1], row->size - static_cast<std::size_t>(at));
+  auto idx = static_cast<std::size_t>(at);
+  memmove(&row->chars[idx], &row->chars[idx + 1], row->size - idx);
   row->size--;
   editorUpdateRow(row);
   E.dirty++;
@@ -405,7 +411,7 @@ void editorRowDelChar(erow *row, int at) {
 
 /*** editor operations ***/
 
-void editorInsertChar(int c) {
+void editorInsertChar(const char c) {
   if (E.cy == E.numrows) {
     editorInsertRow(static_cast<int>(E.numrows), "", 0);
   }
@@ -912,7 +918,7 @@ bool editorProcessKeypress(const Terminal &term) {
       break;
 
   default:
-    editorInsertChar(c);
+    editorInsertChar(static_cast<char>(c));
     break;
   }
 

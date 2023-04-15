@@ -766,7 +766,7 @@ char *editorPrompt(const Terminal &term, const char *prompt1, const char *prompt
     editorRefreshScreen(term);
 
     int c = term.read_key();
-    if (c == Key::DEL || c == CTRL('h') ||
+    if (c == Key::DEL || c == CTRL_KEY('h') ||
         c == Key::BACKSPACE) {
       if (buflen != 0)
         buf[--buflen] = '\0';

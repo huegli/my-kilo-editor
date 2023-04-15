@@ -65,7 +65,7 @@ typedef struct erow
   std::size_t size;
   std::size_t rsize;
   std::string chars{};
-  char *render;
+  std::string render{};
   unsigned char *hl;
   int hl_open_comment;
 } erow;
@@ -157,11 +157,11 @@ void editorUpdateSyntax(erow *row)
 
   size_t i = 0;
   while (i < row->rsize) {
-    auto c = row->render[i];
+    auto c = row->render.at(i);
     auto prev_hl = (i > 0) ? row->hl[i - 1] : HL_NORMAL;
 
     if (scs_len && !in_string && !in_comment) {
-      if (!strncmp(&row->render[i], scs, scs_len)) {
+      if (!strncmp(&row->render.at(i), scs, scs_len)) {
         memset(&row->hl[i], HL_COMMENT, row->rsize - i);
         break;
       }
@@ -170,7 +170,7 @@ void editorUpdateSyntax(erow *row)
     if (mcs_len && mce_len && !in_string) {
       if (in_comment) {
         row->hl[i] = HL_MLCOMMENT;
-        if (!strncmp(&row->render[i], mce, mce_len)) {
+        if (!strncmp(&row->render.at(i), mce, mce_len)) {
           memset(&row->hl[i], HL_MLCOMMENT, mce_len);
           i += mce_len;
           in_comment = 0;
@@ -180,7 +180,7 @@ void editorUpdateSyntax(erow *row)
           i++;
           continue;
         }
-      } else if (!strncmp(&row->render[i], mcs, mcs_len)) {
+      } else if (!strncmp(&row->render.at(i), mcs, mcs_len)) {
         memset(&row->hl[i], HL_MLCOMMENT, mcs_len);
         i += mcs_len;
         in_comment = 1;
@@ -321,20 +321,21 @@ void editorUpdateRow(erow *row)
   for (std::size_t j = 0; j < row->size; j++)
     if (row->chars.at(j) == '\t') tabs++;
 
-  free(row->render);
-  row->render = static_cast<char *>(malloc(row->size + tabs * (KILO_TAB_STOP - 1) + 1));
-
   std::size_t idx = 0;
   for (std::size_t j = 0; j < row->size; j++) {
     if (row->chars.at(j) == '\t') {
-      row->render[idx++] = ' ';
-      while (idx % KILO_TAB_STOP != 0) row->render[idx++] = ' ';
+      row->render.push_back(' ');
+      idx++;
+      while (idx % KILO_TAB_STOP != 0) {
+        row->render.push_back(' ');
+        idx++;
+      }
     } else {
-      row->render[idx++] = row->chars.at(j);
+      row->render.push_back(row->chars.at(j));
+      idx++;
     }
   }
-  row->render[idx] = '\0';
-  row->rsize = static_cast<std::size_t>(idx);
+  row->rsize = static_cast<std::size_t>(idx);// FIXME: We don't really need idx
 
   editorUpdateSyntax(row);
 }
@@ -355,7 +356,7 @@ void editorInsertRow(const int at, std::string s)
   E.row[at].chars = s;
 
   E.row[at].rsize = 0;
-  E.row[at].render = nullptr;
+  E.row[at].render.clear();
   E.row[at].hl = nullptr;
   E.row[at].hl_open_comment = 0;
   editorUpdateRow(&E.row[idx]);
@@ -364,11 +365,7 @@ void editorInsertRow(const int at, std::string s)
   E.dirty++;
 }
 
-void editorFreeRow(erow *row)
-{
-  free(row->render);
-  free(row->hl);
-}
+void editorFreeRow(erow *row) { free(row->hl); }
 
 void editorDelRow(const int at)
 {
@@ -557,17 +554,19 @@ void editorFindCallback(char *query, int key)
       current = 0;
 
     erow *row = &E.row[current];
-    char *match = strstr(row->render, query);
+    auto pos = row->render.find(query);
+    char *match = &row->render.at(pos);
+
     if (match) {
       last_match = current;
       E.cy = static_cast<std::size_t>(current);
-      E.cx = editorRowRxToCx(row, static_cast<std::size_t>(match - row->render));
+      E.cx = editorRowRxToCx(row, static_cast<std::size_t>(match - row->render.c_str()));
       E.rowoff = E.numrows;
 
       saved_hl_line = current;
       saved_hl = static_cast<char *>(malloc(row->size));
       memcpy(saved_hl, row->hl, row->rsize);
-      memset(&row->hl[match - row->render], HL_MATCH, strlen(query));
+      memset(&row->hl[match - row->render.c_str()], HL_MATCH, strlen(query));
       break;
     }
   }
@@ -632,33 +631,35 @@ void editorDrawRows(std::string &ab)
       int len = static_cast<int>(E.row[filerow].rsize) - static_cast<int>(E.coloff);
       if (len < 0) len = 0;
       if (len > E.screencols) len = E.screencols;
-      char *c = &E.row[filerow].render[E.coloff];
-      unsigned char *hl = &E.row[filerow].hl[E.coloff];
-      fg current_color = fg::black;// black is not used in editorSyntaxToColor
-      int j;
-      for (j = 0; j < len; j++) {
-        if (iscntrl(c[j])) {
-          char sym = (c[j] <= 26) ? '@' + c[j] : '?';
-          ab.append(color(style::reversed));
-          ab.append(std::string(&sym, 1));
-          ab.append(color(style::reset));
-          if (current_color != fg::black) { ab.append(color(current_color)); }
-        } else if (hl[j] == HL_NORMAL) {
-          if (current_color != fg::black) {
-            ab.append(color(fg::reset));
-            current_color = fg::black;
+      if (len > 0) {// FIXME: Do we need this condition?
+        char *c = &E.row[filerow].render.at(E.coloff);
+        unsigned char *hl = &E.row[filerow].hl[E.coloff];
+        fg current_color = fg::black;// black is not used in editorSyntaxToColor
+        int j;
+        for (j = 0; j < len; j++) {
+          if (iscntrl(c[j])) {
+            char sym = (c[j] <= 26) ? '@' + c[j] : '?';
+            ab.append(color(style::reversed));
+            ab.append(std::string(&sym, 1));
+            ab.append(color(style::reset));
+            if (current_color != fg::black) { ab.append(color(current_color)); }
+          } else if (hl[j] == HL_NORMAL) {
+            if (current_color != fg::black) {
+              ab.append(color(fg::reset));
+              current_color = fg::black;
+            }
+            ab.append(std::string(&c[j], 1));
+          } else {
+            fg color = editorSyntaxToColor(hl[j]);
+            if (color != current_color) {
+              current_color = color;
+              ab.append(Term::color(color));
+            }
+            ab.append(std::string(&c[j], 1));
           }
-          ab.append(std::string(&c[j], 1));
-        } else {
-          fg color = editorSyntaxToColor(hl[j]);
-          if (color != current_color) {
-            current_color = color;
-            ab.append(Term::color(color));
-          }
-          ab.append(std::string(&c[j], 1));
         }
+        ab.append(color(fg::reset));
       }
-      ab.append(color(fg::reset));
     }
 
     ab.append(erase_to_eol());

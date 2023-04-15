@@ -78,7 +78,7 @@ struct editorConfig {
   std::size_t numrows;
   erow *row;
   int dirty;
-  char *filename;
+  std::string filename{};
   char statusmsg[80];
   time_t statusmsg_time;
   struct editorSyntax *syntax;
@@ -255,18 +255,16 @@ auto editorSyntaxToColor(const int hl) {
 
 void editorSelectSyntaxHighlight() {
   E.syntax = nullptr;
-  if (E.filename == nullptr)
+  if (E.filename.empty())
     return;
-
-  auto *ext = strrchr(E.filename, '.');
 
   for (auto j = 0; j != HLDB_ENTRIES; ++j) {
     auto *s = &HLDB[j];
     unsigned int i = 0;
     while (s->filematch[i]) {
       auto is_ext = (s->filematch[i][0] == '.');
-      if ((is_ext && ext && !strcmp(ext, s->filematch[i])) ||
-          (!is_ext && strstr(E.filename, s->filematch[i]))) {
+      if ((is_ext && E.filename.ends_with(s->filematch[i])) ||
+        (!is_ext && E.filename.starts_with(s->filematch[i]))) {
         E.syntax = s;
 
         for (std::size_t filerow = 0; filerow < E.numrows; filerow++) {
@@ -476,11 +474,10 @@ char *editorRowsToString(int *buflen) {
 }
 
 void editorOpen(char *filename) {
-  free(E.filename);
 #ifdef _WIN32
   E.filename = _strdup(filename);
 #else
-  E.filename = strdup(filename);
+  E.filename = filename;
 #endif
   editorSelectSyntaxHighlight();
 
@@ -501,9 +498,9 @@ void editorOpen(char *filename) {
 }
 
 void editorSave(const Terminal &term) {
-  if (E.filename == nullptr) {
+  if (E.filename.empty()) {
     E.filename = editorPrompt(term, "Save as: ", " (ESC to cancel)", nullptr);
-    if (E.filename == nullptr) {
+    if (E.filename.empty()) {
       editorSetStatusMessage("Save aborted");
       return;
     }
@@ -688,7 +685,7 @@ void editorDrawStatusBar(std::string &ab) {
   ab.append(color(style::reversed));
   char status[80], rstatus[80];
   int len = snprintf(status, sizeof(status), "%.20s - %u lines %s",
-                     E.filename ? E.filename : "[No Name]", static_cast<unsigned int>(E.numrows),
+                     !E.filename.empty() ? E.filename.c_str() : "[No Name]", static_cast<unsigned int>(E.numrows),
                      E.dirty ? "(modified)" : "");
   int rlen =
       snprintf(rstatus, sizeof(rstatus), "%s | %u/%u",
@@ -937,7 +934,6 @@ void initEditor(const Terminal &term) {
   E.numrows = 0;
   E.row = nullptr;
   E.dirty = 0;
-  E.filename = nullptr;
   E.statusmsg[0] = '\0';
   E.statusmsg_time = 0;
   E.syntax = nullptr;
@@ -972,49 +968,4 @@ int main(int argc, char *argv[]) {
   }
   return 0;
 }
-
-/* #include <functional> */
-/* #include <iostream> */
-/* #include <optional> */
-
-/* #include <CLI/CLI.hpp> */
-/* #include <spdlog/spdlog.h> */
-
-// This file will be generated automatically when you run the CMake configuration step.
-// It creates a namespace called `myproject`.
-// You can modify the source template at `configured_files/config.hpp.in`.
-/* #include <internal_use_only/config.hpp> */
-
-
-// NOLINTNEXTLINE(bugprone-exception-escape)
-/* int main(int argc, const char **argv) */
-/* { */
-/*   try { */
-/*     CLI::App app{ fmt::format("{} version {}", myproject::cmake::project_name, myproject::cmake::project_version) }; */
-
-/*     std::optional<std::string> message; */
-/*     app.add_option("-m,--message", message, "A message to print back out"); */
-/*     bool show_version = false; */
-/*     app.add_flag("--version", show_version, "Show version information"); */
-
-/*     CLI11_PARSE(app, argc, argv); */
-
-/*     if (show_version) { */
-/*       fmt::print("{}\n", myproject::cmake::project_version); */
-/*       return EXIT_SUCCESS; */
-/*     } */
-
-/*     // Use the default logger (stdout, multi-threaded, colored) */
-/*     spdlog::info("Hello, {}!", "World"); */
-
-/*     if (message) { */
-/*       fmt::print("Message: '{}'\n", *message); */
-/*     } else { */
-/*       fmt::print("No Message Provided :(\n"); */
-/*     } */
-/*   } catch (const std::exception &e) { */
-/*     spdlog::error("Unhandled exception in main: {}", e.what()); */
-/*   } */
-/* } */
-
 

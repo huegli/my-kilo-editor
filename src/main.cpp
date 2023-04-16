@@ -337,7 +337,7 @@ void editorUpdateRow(erow *row)
   editorUpdateSyntax(row);
 }
 
-void editorInsertRow(const int at, std::string s)
+void editorInsertRow(const int at, const std::string &s)
 {
   if (at < 0 || at > static_cast<int>(E.numrows)) return;
 
@@ -386,7 +386,7 @@ void editorRowInsertChar(erow *row, const int at, const char c)
   E.dirty++;
 }
 
-void editorRowAppendString(erow *row, const std::string s)
+void editorRowAppendString(erow *row, const std::string &s)
 {
   row->chars.append(s);
   row->size += s.length();

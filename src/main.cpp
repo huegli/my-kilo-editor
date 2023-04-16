@@ -317,25 +317,22 @@ auto editorRowRxToCx(const erow *row, const std::size_t rx)
 
 void editorUpdateRow(erow *row)
 {
-  std::size_t tabs = 0;
-  for (std::size_t j = 0; j < row->size; j++)
-    if (row->chars.at(j) == '\t') tabs++;
-
-  std::size_t idx = 0;
+  row->render.clear();
+  std::size_t idx = 0;// FIXME: Try to get rid of idx
   for (std::size_t j = 0; j < row->size; j++) {
     if (row->chars.at(j) == '\t') {
-      row->render.push_back(' ');
+      row->render.insert(idx, 1, ' ');
       idx++;
       while (idx % KILO_TAB_STOP != 0) {
-        row->render.push_back(' ');
+        row->render.insert(idx, 1, ' ');
         idx++;
       }
     } else {
-      row->render.push_back(row->chars.at(j));
+      row->render.insert(idx, 1, row->chars.at(j));
       idx++;
     }
   }
-  row->rsize = static_cast<std::size_t>(idx);// FIXME: We don't really need idx
+  row->rsize = row->render.length();
 
   editorUpdateSyntax(row);
 }
@@ -555,9 +552,9 @@ void editorFindCallback(char *query, int key)
 
     erow *row = &E.row[current];
     auto pos = row->render.find(query);
-    char *match = &row->render.at(pos);
 
-    if (match) {
+    if (std::string::npos != pos) {
+      char *match = &row->render.at(pos);
       last_match = current;
       E.cy = static_cast<std::size_t>(current);
       E.cx = editorRowRxToCx(row, static_cast<std::size_t>(match - row->render.c_str()));

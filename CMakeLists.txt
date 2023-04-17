@@ -7,4 +7,4 @@ project(
   my-kilo-editor
   LANGUAGES CXX C)
 
-add_executable(kilo src/main.cpp)
+add_executable(kilo src/main.cpp src/row.cpp)

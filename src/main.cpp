@@ -1,5 +1,7 @@
 /*** includes ***/
 
+#include "editorConfig.h"
+#include "row.h"
 #include "terminal.h"
 
 #include <fstream>
@@ -20,7 +22,6 @@
 /*** defines ***/
 
 const std::string KILO_VERSION{ "0.0.1" };
-const std::size_t KILO_TAB_STOP{ 8 };
 const std::size_t KILO_QUIT_TIMES{ 3 };
 
 using Term::Terminal;
@@ -57,34 +58,6 @@ struct editorSyntax
   const char *multiline_comment_start;
   const char *multiline_comment_end;
   int flags;
-};
-
-typedef struct erow
-{
-  std::size_t idx;
-  std::size_t size;
-  std::size_t rsize;
-  std::string chars{};
-  std::string render{};
-  unsigned char *hl;
-  int hl_open_comment;
-} erow;
-
-struct editorConfig
-{
-  std::size_t cx, cy;
-  std::size_t rx;
-  std::size_t rowoff;
-  std::size_t coloff;
-  int screenrows;
-  int screencols;
-  std::size_t numrows;
-  std::vector<erow> row{};
-  int dirty;
-  std::string filename{};
-  char statusmsg[80];
-  time_t statusmsg_time;
-  struct editorSyntax *syntax;
 };
 
 struct editorConfig E;
@@ -134,7 +107,7 @@ void editorSetStatusMessage(const char *fmt, const char *buf);
 
 bool is_separator(const char c) { return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c) != nullptr; }
 
-void editorUpdateSyntax(erow& row)
+void editorUpdateSyntax(erow &row)
 {
   row.hl = static_cast<unsigned char *>(realloc(row.hl, row.rsize));
   memset(row.hl, HL_NORMAL, row.rsize);
@@ -290,120 +263,6 @@ void editorSelectSyntaxHighlight()
   }
 }
 
-/*** row operations ***/
-
-auto editorRowCxToRx(const erow& row, const std::size_t cx)
-{
-  std::size_t rx = 0;
-  for (std::size_t j = 0; j < cx; j++) {
-    if (row.chars.at(j) == '\t') rx += (KILO_TAB_STOP - 1) - (rx % KILO_TAB_STOP);
-    rx++;
-  }
-  return rx;
-}
-
-auto editorRowRxToCx(const erow& row, const std::size_t rx)
-{
-  std::size_t cur_rx = 0;
-  std::size_t cx = 0;
-  for (cx = 0; cx < row.size; cx++) {
-    if (row.chars.at(cx) == '\t') cur_rx += (KILO_TAB_STOP - 1) - (cur_rx % KILO_TAB_STOP);
-    cur_rx++;
-
-    if (cur_rx > rx) return cx;
-  }
-  return cx;
-}
-
-void editorUpdateRow(erow& row)
-{
-  row.render.erase();
-  std::size_t idx = 0;// FIXME: Try to get rid of idx
-  for (std::size_t j = 0; j < row.size; j++) {
-    if (row.chars.at(j) == '\t') {
-      row.render.insert(idx, 1, ' ');
-      idx++;
-      while (idx % KILO_TAB_STOP != 0) {
-        row.render.insert(idx, 1, ' ');
-        idx++;
-      }
-    } else {
-      row.render.insert(idx, 1, row.chars.at(j));
-      idx++;
-    }
-  }
-  row.rsize = row.render.length();
-
-  editorUpdateSyntax(row);
-}
-
-void editorInsertRow(const int at, const std::string &s)
-{
-  if (at < 0 || at > static_cast<int>(E.numrows)) return;
-
-  auto idx = static_cast<std::size_t>(at);
-
-  erow newRow{};
-  E.row.insert(E.row.begin() + idx, newRow);
-
-  for (auto j = idx + 1; j <= E.numrows; j++) E.row[j].idx++;
-
-  E.row[at].idx = idx;
-
-  E.row[at].size = s.length();
-  E.row[at].chars = s;
-
-  E.row[at].rsize = 0;
-  E.row[at].render = "";
-  E.row[at].hl = nullptr;
-  E.row[at].hl_open_comment = 0;
-  editorUpdateRow(E.row[idx]);
-
-  E.numrows++;
-  E.dirty++;
-}
-
-void editorFreeRow(erow& row) { free(row.hl); }
-
-void editorDelRow(const int at)
-{
-  if (at < 0 || static_cast<std::size_t>(at) >= E.numrows) return;
-
-  auto idx = static_cast<std::size_t>(at);
-  editorFreeRow(E.row[idx]);
-  E.row.erase(E.row.begin() + idx);
-  for (auto j = idx; j < idx - 1; j++) E.row[j].idx--;
-  E.numrows--;
-  E.dirty++;
-}
-
-void editorRowInsertChar(erow& row, const int at, const char c)
-{
-  auto idx = static_cast<std::size_t>(at);
-  if (at < 0 || static_cast<std::size_t>(at) > row.size) idx = row.size;
-  row.chars.insert(idx, 1, c);
-  row.size++;
-  editorUpdateRow(row);
-  E.dirty++;
-}
-
-void editorRowAppendString(erow& row, const std::string &s)
-{
-  row.chars.append(s);
-  row.size += s.length();
-  editorUpdateRow(row);
-  E.dirty++;
-}
-
-void editorRowDelChar(erow& row, const int at)
-{
-  if (at < 0 || at >= static_cast<int>(row.size)) return;
-  row.chars.erase(at, 1);
-  row.size--;
-  editorUpdateRow(row);
-  E.dirty++;
-}
-
 /*** editor operations ***/
 
 void editorInsertChar(const char c)
@@ -432,7 +291,7 @@ void editorDelChar()
   if (E.cy == E.numrows) return;
   if (E.cx == 0 && E.cy == 0) return;
 
-  erow& row = E.row[E.cy];
+  erow &row = E.row[E.cy];
   if (E.cx > 0) {
     editorRowDelChar(row, static_cast<int>(E.cx) - 1);
     E.cx--;
@@ -550,7 +409,7 @@ void editorFindCallback(char *query, int key)
     else if (current == static_cast<int>(E.numrows))
       current = 0;
 
-    erow& row = E.row[current];
+    erow &row = E.row[current];
     auto pos = row.render.find(query);
 
     if (std::string::npos != pos) {

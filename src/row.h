@@ -2,6 +2,8 @@
 
 #include <string>
 
+namespace row {
+
 typedef struct erow
 {
   std::size_t idx;
@@ -13,11 +15,13 @@ typedef struct erow
   int hl_open_comment;
 } erow;
 
-std::size_t editorRowCxToRx(const erow &row, const std::size_t cx);
-std::size_t editorRowRxToCx(const erow &row, const std::size_t rx);
-void editorUpdateRow(erow &row);
-void editorInsertRow(const int at, const std::string &s);
-void editorDelRow(const int at);
-void editorRowInsertChar(erow &row, const int at, const char c);
-void editorRowAppendString(erow &row, const std::string &s);
-void editorRowDelChar(erow &row, const int at);
+std::size_t CxToRx(const erow &row, const std::size_t cx);
+std::size_t RxToCx(const erow &row, const std::size_t rx);
+void Update(erow &row);
+void Insert(const int at, const std::string &s);
+void Del(const int at);
+void InsertChar(erow &row, const int at, const char c);
+void AppendString(erow &row, const std::string &s);
+void DelChar(erow &row, const int at);
+
+} // end namespace row

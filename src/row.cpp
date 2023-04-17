@@ -4,13 +4,15 @@
 #include <string>
 
 // FIXME: Don't do it this way
-void editorUpdateSyntax(erow &row);
+void editorUpdateSyntax(row::erow &row);
 
 const std::size_t KILO_TAB_STOP{ 8 };
 
+namespace row {
+
 /*** row operations ***/
 
-std::size_t editorRowCxToRx(const erow &row, const std::size_t cx)
+std::size_t CxToRx(const erow &row, const std::size_t cx)
 {
   std::size_t rx = 0;
   for (std::size_t j = 0; j < cx; j++) {
@@ -20,7 +22,7 @@ std::size_t editorRowCxToRx(const erow &row, const std::size_t cx)
   return rx;
 }
 
-std::size_t editorRowRxToCx(const erow &row, const std::size_t rx)
+std::size_t RxToCx(const erow &row, const std::size_t rx)
 {
   std::size_t cur_rx = 0;
   std::size_t cx = 0;
@@ -33,7 +35,7 @@ std::size_t editorRowRxToCx(const erow &row, const std::size_t rx)
   return cx;
 }
 
-void editorUpdateRow(erow &row)
+void Update(erow &row)
 {
   row.render.erase();
   std::size_t idx = 0;// FIXME: Try to get rid of idx
@@ -55,7 +57,7 @@ void editorUpdateRow(erow &row)
   editorUpdateSyntax(row);
 }
 
-void editorInsertRow(const int at, const std::string &s)
+void Insert(const int at, const std::string &s)
 {
   if (at < 0 || at > static_cast<int>(E.numrows)) return;
 
@@ -75,7 +77,7 @@ void editorInsertRow(const int at, const std::string &s)
   E.row[at].render = "";
   E.row[at].hl = nullptr;
   E.row[at].hl_open_comment = 0;
-  editorUpdateRow(E.row[idx]);
+  Update(E.row[idx]);
 
   E.numrows++;
   E.dirty++;
@@ -83,7 +85,7 @@ void editorInsertRow(const int at, const std::string &s)
 
 void editorFreeRow(erow &row) { free(row.hl); }
 
-void editorDelRow(const int at)
+void Del(const int at)
 {
   if (at < 0 || static_cast<std::size_t>(at) >= E.numrows) return;
 
@@ -95,29 +97,31 @@ void editorDelRow(const int at)
   E.dirty++;
 }
 
-void editorRowInsertChar(erow &row, const int at, const char c)
+void InsertChar(erow &row, const int at, const char c)
 {
   auto idx = static_cast<std::size_t>(at);
   if (at < 0 || static_cast<std::size_t>(at) > row.size) idx = row.size;
   row.chars.insert(idx, 1, c);
   row.size++;
-  editorUpdateRow(row);
+  Update(row);
   E.dirty++;
 }
 
-void editorRowAppendString(erow &row, const std::string &s)
+void AppendString(erow &row, const std::string &s)
 {
   row.chars.append(s);
   row.size += s.length();
-  editorUpdateRow(row);
+  Update(row);
   E.dirty++;
 }
 
-void editorRowDelChar(erow &row, const int at)
+void DelChar(erow &row, const int at)
 {
   if (at < 0 || at >= static_cast<int>(row.size)) return;
   row.chars.erase(at, 1);
   row.size--;
-  editorUpdateRow(row);
+  Update(row);
   E.dirty++;
 }
+
+} // end namespace row

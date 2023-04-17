@@ -14,7 +14,7 @@ struct editorConfig
   int screenrows;
   int screencols;
   std::size_t numrows;
-  std::vector<erow> row{};
+  std::vector<row::erow> row{};
   int dirty;
   std::string filename{};
   char statusmsg[80];

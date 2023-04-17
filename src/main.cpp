@@ -107,7 +107,7 @@ void editorSetStatusMessage(const char *fmt, const char *buf);
 
 bool is_separator(const char c) { return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c) != nullptr; }
 
-void editorUpdateSyntax(erow &row)
+void editorUpdateSyntax(row::erow &row)
 {
   row.hl = static_cast<unsigned char *>(realloc(row.hl, row.rsize));
   memset(row.hl, HL_NORMAL, row.rsize);
@@ -267,20 +267,20 @@ void editorSelectSyntaxHighlight()
 
 void editorInsertChar(const char c)
 {
-  if (E.cy == E.numrows) { editorInsertRow(static_cast<int>(E.numrows), ""); }
-  editorRowInsertChar(E.row[E.cy], static_cast<int>(E.cx), c);
+  if (E.cy == E.numrows) { row::Insert(static_cast<int>(E.numrows), ""); }
+  row::InsertChar(E.row[E.cy], static_cast<int>(E.cx), c);
   E.cx++;
 }
 
 void editorInsertNewLine()
 {
   if (E.cx == 0) {
-    editorInsertRow(static_cast<int>(E.cy), "");
+    row::Insert(static_cast<int>(E.cy), "");
   } else {
-    editorInsertRow(static_cast<int>(E.cy) + 1, E.row[E.cy].chars.substr(E.cx, E.row[E.cy].size - E.cx));
+    row::Insert(static_cast<int>(E.cy) + 1, E.row[E.cy].chars.substr(E.cx, E.row[E.cy].size - E.cx));
     E.row[E.cy].chars.erase(E.cx, E.row[E.cy].size - E.cx);
     E.row[E.cy].size = E.cx;
-    editorUpdateRow(E.row[E.cy]);
+    row::Update(E.row[E.cy]);
   }
   E.cy++;
   E.cx = 0;
@@ -291,14 +291,14 @@ void editorDelChar()
   if (E.cy == E.numrows) return;
   if (E.cx == 0 && E.cy == 0) return;
 
-  erow &row = E.row[E.cy];
+  row::erow &row = E.row[E.cy];
   if (E.cx > 0) {
-    editorRowDelChar(row, static_cast<int>(E.cx) - 1);
+    row::DelChar(row, static_cast<int>(E.cx) - 1);
     E.cx--;
   } else {
     E.cx = E.row[E.cy - 1].size;
-    editorRowAppendString(E.row[E.cy - 1], row.chars);
-    editorDelRow(static_cast<int>(E.cy));
+    row::AppendString(E.row[E.cy - 1], row.chars);
+    row::Del(static_cast<int>(E.cy));
     E.cy--;
   }
 }
@@ -341,7 +341,7 @@ void editorOpen(char *filename)
   while (f.rdstate() == std::ios_base::goodbit) {
     std::size_t linelen = line.size();
     while (linelen > 0 && (line[linelen - 1] == '\n' || line[linelen - 1] == '\r')) linelen--;
-    editorInsertRow(static_cast<int>(E.numrows), line);
+    row::Insert(static_cast<int>(E.numrows), line);
     std::getline(f, line);
   }
   E.dirty = 0;
@@ -409,14 +409,14 @@ void editorFindCallback(char *query, int key)
     else if (current == static_cast<int>(E.numrows))
       current = 0;
 
-    erow &row = E.row[current];
+    row::erow &row = E.row[current];
     auto pos = row.render.find(query);
 
     if (std::string::npos != pos) {
       char *match = &row.render.at(pos);
       last_match = current;
       E.cy = static_cast<std::size_t>(current);
-      E.cx = editorRowRxToCx(row, static_cast<std::size_t>(match - row.render.c_str()));
+      E.cx = row::RxToCx(row, static_cast<std::size_t>(match - row.render.c_str()));
       E.rowoff = E.numrows;
 
       saved_hl_line = current;
@@ -452,7 +452,7 @@ void editorFind(const Terminal &term)
 void editorScroll()
 {
   E.rx = 0;
-  if (E.cy < E.numrows) { E.rx = editorRowCxToRx(E.row[E.cy], E.cx); }
+  if (E.cy < E.numrows) { E.rx = row::CxToRx(E.row[E.cy], E.cx); }
   if (E.cy < E.rowoff) { E.rowoff = E.cy; }
   if (E.cy >= E.rowoff + static_cast<std::size_t>(E.screenrows)) {
     E.rowoff = E.cy - static_cast<std::size_t>(E.screenrows) + 1;

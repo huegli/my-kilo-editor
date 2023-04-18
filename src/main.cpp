@@ -563,12 +563,11 @@ void editorDrawMessageBar(std::string &ab)
     ab.append(std::string(E.statusmsg, static_cast<std::size_t>(msglen)));
 }
 
-void editorRefreshScreen(const Terminal &term)
+void editorRefreshScreen(std::string &ab)
 {
   editorScroll();
 
-  std::string ab;
-  ab.reserve(16 * 1024);
+  ab.clear();
 
   ab.append(cursor_off());
   ab.append(move_cursor(1, 1));
@@ -580,8 +579,6 @@ void editorRefreshScreen(const Terminal &term)
   ab.append(move_cursor((E.cy - E.rowoff) + 1, (E.rx - E.coloff) + 1));
 
   ab.append(cursor_on());
-
-  term.write(ab);
 }
 
 void editorSetStatusMessage()
@@ -612,10 +609,14 @@ char *editorPrompt(const Terminal &term, const char *prompt1, const char *prompt
   buf[0] = '\0';
   char outbuf[256];
 
+  std::string ab;
+  ab.reserve(16 * 1024);
+
   while (true) {
     snprintf(outbuf, sizeof(outbuf), "%s%s%s", prompt1, buf, prompt2);
     editorSetStatusMessage(outbuf);
-    editorRefreshScreen(term);
+    editorRefreshScreen(ab);
+    term.write(ab);
 
     int c = term.read_key();
     if (c == Key::DEL || c == CTRL_KEY('h') || c == Key::BACKSPACE) {
@@ -790,8 +791,15 @@ int main(int argc, char *argv[])
     if (argc >= 2) { editorOpen(argv[1]); }
     editorSetStatusMessage("HELP: Ctrl-S = save | Ctrl - Q = quit | Ctrl-F = find");
 
-    editorRefreshScreen(term);
-    while (editorProcessKeypress(term)) { editorRefreshScreen(term); }
+    std::string ab;
+    ab.reserve(16 * 1024);
+
+    editorRefreshScreen(ab);
+    term.write(ab);
+    while (editorProcessKeypress(term)) {
+      editorRefreshScreen(ab);
+      term.write(ab);
+    }
   } catch (const std::runtime_error &re) {
     std::cerr << "Runtime error: " << re.what() << std::endl;
     return 2;

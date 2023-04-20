@@ -1,10 +1,7 @@
-#include "editorConfig.h"
 #include "row.h"
+#include "editorConfig.h"
 
 #include <string>
-
-// FIXME: Don't do it this way
-void editorUpdateSyntax(row::erow &row);
 
 const std::size_t KILO_TAB_STOP{ 8 };
 
@@ -54,7 +51,7 @@ void Update(erow &row)
   }
   row.rsize = row.render.length();
 
-  editorUpdateSyntax(row);
+  // editorUpdateSyntax(row);
 }
 
 void Insert(const int at, const std::string &s)
@@ -124,4 +121,4 @@ void DelChar(erow &row, const int at)
   E.dirty++;
 }
 
-} // end namespace row
+}// end namespace row

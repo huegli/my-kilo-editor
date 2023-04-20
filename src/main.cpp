@@ -281,6 +281,7 @@ void editorInsertNewLine()
     E.row[E.cy].chars.erase(E.cx, E.row[E.cy].size - E.cx);
     E.row[E.cy].size = E.cx;
     row::Update(E.row[E.cy]);
+    editorUpdateSyntax(E.row[E.cy]);
   }
   E.cy++;
   E.cx = 0;

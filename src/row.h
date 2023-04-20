@@ -15,13 +15,36 @@ typedef struct erow
   int hl_open_comment;
 } erow;
 
-std::size_t CxToRx(const erow &row, const std::size_t cx);
-std::size_t RxToCx(const erow &row, const std::size_t rx);
-void Update(erow &row);
-void Insert(const int at, const std::string &s);
-void Del(const int at);
-void InsertChar(erow &row, const int at, const char c);
-void AppendString(erow &row, const std::string &s);
-void DelChar(erow &row, const int at);
 
-} // end namespace row
+}// namespace row
+
+
+struct editorConfig
+{
+  std::size_t cx, cy;
+  std::size_t rx;
+  std::size_t rowoff;
+  std::size_t coloff;
+  int screenrows;
+  int screencols;
+  std::size_t numrows;
+  std::vector<row::erow> row{};
+  int dirty;
+  std::string filename{};
+  char statusmsg[80];
+  time_t statusmsg_time;
+  struct editorSyntax *syntax;
+};
+
+namespace row {
+
+std::size_t CxToRx(const erow &, const std::size_t);
+std::size_t RxToCx(const erow &, const std::size_t);
+void Update(erow &);
+void Insert(editorConfig &, const int, const std::string &);
+void Del(editorConfig &, const int);
+void InsertChar(editorConfig &, erow &, const int, const char);
+void AppendString(editorConfig &, erow &, const std::string &);
+void DelChar(editorConfig &, erow &, const int);
+
+}// end namespace row

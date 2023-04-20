@@ -1,6 +1,19 @@
 #include "row.h"
 #include <catch2/catch_test_macros.hpp>
 
+bool checkUpdate(const std::string &chars, const std::string &render)
+{
+  row::erow r;
+  r.chars = chars;
+  r.size = chars.length();
+  row::Update(r);
+  if ((r.render == render) && (r.rsize == render.length())) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 TEST_CASE("Cx -> Rx", "[row]")
 {
 
@@ -37,4 +50,16 @@ TEST_CASE("Rx -> Cx", "[row]")
   CHECK(2 == row::RxToCx(r, 8));
   CHECK(1 == row::RxToCx(r, 7));
   CHECK(0 == row::RxToCx(r, 0));
+}
+
+TEST_CASE("Update", "[row]")
+{
+  CHECK(checkUpdate("\t", "        "));
+  CHECK(checkUpdate("#\t#", "#       #"));
+  CHECK(checkUpdate("##\t#", "##      #"));
+  CHECK(checkUpdate("###\t#", "###     #"));
+  CHECK(checkUpdate("####\t#", "####    #"));
+  CHECK(checkUpdate("#####\t#", "#####   #"));
+  CHECK(checkUpdate("######\t#", "######  #"));
+  CHECK(checkUpdate("########\t#", "########        #"));
 }

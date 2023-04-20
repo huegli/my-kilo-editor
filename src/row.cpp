@@ -50,14 +50,10 @@ void Update(erow &r)
     }
   }
   r.rsize = r.render.length();
-
-  // editorUpdateSyntax(row);
 }
 
 erow &Insert(editorConfig &E, const int at, const std::string &s)
 {
-  // DO THIS OUTSIDE OF INSERT: if (at < 0 || at > static_cast<int>(E.numrows)) return;
-
   auto idx = static_cast<std::size_t>(at);
 
   erow newRow{};

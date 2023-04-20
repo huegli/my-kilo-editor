@@ -266,22 +266,28 @@ void editorSelectSyntaxHighlight()
 
 void editorInsertChar(const char c)
 {
-  if (E.cy == E.numrows) { row::Insert(E, static_cast<int>(E.numrows), ""); }
-  row::InsertChar(E, E.row[E.cy], static_cast<int>(E.cx), c);
+  if (E.cy == E.numrows) { editorUpdateSyntax(row::Insert(E, static_cast<int>(E.numrows), "")); }
+  row::InsertChar(E.row[E.cy], static_cast<int>(E.cx), c);
+  editorUpdateSyntax(E.row[E.cy]);
+  E.dirty++;
   E.cx++;
 }
 
 void editorInsertNewLine()
 {
   if (E.cx == 0) {
-    row::Insert(E, static_cast<int>(E.cy), "");
+    editorUpdateSyntax(row::Insert(E, static_cast<int>(E.cy), ""));
   } else {
-    row::Insert(E, static_cast<int>(E.cy) + 1, E.row[E.cy].chars.substr(E.cx, E.row[E.cy].size - E.cx));
+    if (E.cy <= E.numrows) {
+      editorUpdateSyntax(
+        row::Insert(E, static_cast<int>(E.cy) + 1, E.row[E.cy].chars.substr(E.cx, E.row[E.cy].size - E.cx)));
+    }
     E.row[E.cy].chars.erase(E.cx, E.row[E.cy].size - E.cx);
     E.row[E.cy].size = E.cx;
     row::Update(E.row[E.cy]);
     editorUpdateSyntax(E.row[E.cy]);
   }
+  E.dirty++;
   E.cy++;
   E.cx = 0;
 }
@@ -293,11 +299,15 @@ void editorDelChar()
 
   row::erow &row = E.row[E.cy];
   if (E.cx > 0) {
-    row::DelChar(E, row, static_cast<int>(E.cx) - 1);
+    row::DelChar(row, static_cast<int>(E.cx) - 1);
+    editorUpdateSyntax(E.row[E.cy - 1]);
+    E.dirty++;
     E.cx--;
   } else {
     E.cx = E.row[E.cy - 1].size;
-    row::AppendString(E, E.row[E.cy - 1], row.chars);
+    row::AppendString(E.row[E.cy - 1], row.chars);
+    editorUpdateSyntax(E.row[E.cy - 1]);
+    E.dirty++;
     row::Del(E, static_cast<int>(E.cy));
     E.cy--;
   }
@@ -341,7 +351,7 @@ void editorOpen(char *filename)
   while (f.rdstate() == std::ios_base::goodbit) {
     std::size_t linelen = line.size();
     while (linelen > 0 && (line[linelen - 1] == '\n' || line[linelen - 1] == '\r')) linelen--;
-    row::Insert(E, static_cast<int>(E.numrows), line);
+    editorUpdateSyntax(row::Insert(E, static_cast<int>(E.numrows), line));
     std::getline(f, line);
   }
   E.dirty = 0;

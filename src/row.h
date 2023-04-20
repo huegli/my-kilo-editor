@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 namespace row {
 
@@ -41,10 +42,10 @@ namespace row {
 std::size_t CxToRx(const erow &, const std::size_t);
 std::size_t RxToCx(const erow &, const std::size_t);
 void Update(erow &);
-void Insert(editorConfig &, const int, const std::string &);
+erow &Insert(editorConfig &, const int, const std::string &);
 void Del(editorConfig &, const int);
-void InsertChar(editorConfig &, erow &, const int, const char);
-void AppendString(editorConfig &, erow &, const std::string &);
-void DelChar(editorConfig &, erow &, const int);
+void InsertChar(erow &, const int, const char);
+void AppendString(erow &, const std::string &);
+void DelChar(erow &, const int);
 
 }// end namespace row

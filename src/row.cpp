@@ -54,9 +54,9 @@ void Update(erow &r)
   // editorUpdateSyntax(row);
 }
 
-void Insert(editorConfig &E, const int at, const std::string &s)
+erow &Insert(editorConfig &E, const int at, const std::string &s)
 {
-  if (at < 0 || at > static_cast<int>(E.numrows)) return;
+  // DO THIS OUTSIDE OF INSERT: if (at < 0 || at > static_cast<int>(E.numrows)) return;
 
   auto idx = static_cast<std::size_t>(at);
 
@@ -78,6 +78,8 @@ void Insert(editorConfig &E, const int at, const std::string &s)
 
   E.numrows++;
   E.dirty++;
+
+  return E.row[idx];
 }
 
 void editorFreeRow(erow &r) { free(r.hl); }
@@ -94,31 +96,28 @@ void Del(editorConfig &E, const int at)
   E.dirty++;
 }
 
-void InsertChar(editorConfig &E, erow &r, const int at, const char c)
+void InsertChar(erow &r, const int at, const char c)
 {
   auto idx = static_cast<std::size_t>(at);
   if (at < 0 || static_cast<std::size_t>(at) > r.size) idx = r.size;
   r.chars.insert(idx, 1, c);
   r.size++;
   Update(r);
-  E.dirty++;
 }
 
-void AppendString(editorConfig &E, erow &r, const std::string &s)
+void AppendString(erow &r, const std::string &s)
 {
   r.chars.append(s);
   r.size += s.length();
   Update(r);
-  E.dirty++;
 }
 
-void DelChar(editorConfig &E, erow &r, const int at)
+void DelChar(erow &r, const int at)
 {
   if (at < 0 || at >= static_cast<int>(r.size)) return;
   r.chars.erase(at, 1);
   r.size--;
   Update(r);
-  E.dirty++;
 }
 
 }// end namespace row

@@ -41,12 +41,14 @@ TEST_CASE("Rx -> Cx", "[row]")
 
   row::erow r;
   r.chars = "\t#";
+  r.size = r.chars.length();
   CHECK(1 == row::RxToCx(r, 8));
   CHECK(0 == row::RxToCx(r, 7));
   CHECK(0 == row::RxToCx(r, 1));
   CHECK(0 == row::RxToCx(r, 0));
 
   r.chars = "#\t#";
+  r.size = r.chars.length();
   CHECK(2 == row::RxToCx(r, 8));
   CHECK(1 == row::RxToCx(r, 7));
   CHECK(0 == row::RxToCx(r, 0));

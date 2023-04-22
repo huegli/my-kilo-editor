@@ -1,18 +1,7 @@
 #include "row.h"
+#include <array>
 #include <catch2/catch_test_macros.hpp>
-
-bool checkUpdate(const std::string &chars, const std::string &render)
-{
-  row::erow r;
-  r.chars = chars;
-  r.size = chars.length();
-  row::Update(r);
-  if ((r.render == render) && (r.rsize == render.length())) {
-    return true;
-  } else {
-    return false;
-  }
-}
+#include <string>
 
 TEST_CASE("Cx -> Rx", "[row]")
 {
@@ -54,14 +43,29 @@ TEST_CASE("Rx -> Cx", "[row]")
   CHECK(0 == row::RxToCx(r, 0));
 }
 
+bool checkUpdate(const std::string &chars, const std::string &render)
+{
+  row::erow r;
+  r.chars = chars;
+  r.size = chars.length();
+  row::Update(r);
+  if ((r.render == render) && (r.rsize == render.length())) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+std::array<std::pair<std::string, std::string>, 8> updateArray{ { { "\t", "        " },
+  { "#\t#", "#       #" }, { "##\t#", "##      #" },
+  { "###\t#", "###     #" },
+  { "####\t#", "####    #" },
+  { "#####\t#", "#####   #" },
+  { "######\t#", "######  #" },
+  { "########\t#", "########        #" } } };
+
+
 TEST_CASE("Update", "[row]")
 {
-  CHECK(checkUpdate("\t", "        "));
-  CHECK(checkUpdate("#\t#", "#       #"));
-  CHECK(checkUpdate("##\t#", "##      #"));
-  CHECK(checkUpdate("###\t#", "###     #"));
-  CHECK(checkUpdate("####\t#", "####    #"));
-  CHECK(checkUpdate("#####\t#", "#####   #"));
-  CHECK(checkUpdate("######\t#", "######  #"));
-  CHECK(checkUpdate("########\t#", "########        #"));
+  for (const auto &sp : updateArray) { CHECK(checkUpdate(sp.first, sp.second)); }
 }

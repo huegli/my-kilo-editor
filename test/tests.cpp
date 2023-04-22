@@ -65,7 +65,46 @@ std::array<std::pair<std::string, std::string>, 8> updateArray{ { { "\t", "     
   { "########\t#", "########        #" } } };
 
 
+
 TEST_CASE("Update", "[row]")
 {
   for (const auto &sp : updateArray) { CHECK(checkUpdate(sp.first, sp.second)); }
+}
+
+TEST_CASE("InsertChar", "[row]")
+{
+    row::erow r;
+    r.chars = "0123456789";
+    r.size = 10;
+    row::InsertChar(r,0, '*');
+    CHECK("*0123456789" == r.chars);
+    row::InsertChar(r,1, '^');
+    CHECK("*^0123456789" == r.chars);
+    row::InsertChar(r, 11, '$');
+    CHECK("*^012345678$9" == r.chars);
+    row::InsertChar(r, 13, '#');
+    CHECK("*^012345678$9#" == r.chars);
+    row::InsertChar(r, -10, '@');
+    CHECK("*^012345678$9#@" == r.chars);
+    row::InsertChar(r, 9999, '!');
+    CHECK("*^012345678$9#@!" == r.chars);
+}
+
+TEST_CASE("DelChar", "[row]")
+{
+    row::erow r;
+    r.chars = "0123456789";
+    r.size = 10;
+    row::DelChar(r,0);
+    CHECK("123456789" == r.chars);
+    row::DelChar(r,1);
+    CHECK("13456789" == r.chars);
+    row::DelChar(r, 6);
+    CHECK("1345679" == r.chars);
+    row::DelChar(r, 6);
+    CHECK("134567" == r.chars);
+    row::DelChar(r, -10);
+    CHECK("134567" == r.chars);
+    row::DelChar(r, 10);
+    CHECK("134567" == r.chars);
 }

@@ -1,4 +1,4 @@
-add_library(editor STATIC row.cpp)
+add_library(editor STATIC row.cpp syntax.cpp)
 target_include_directories(editor PUBLIC .)
 
 add_executable(kilo main.cpp)

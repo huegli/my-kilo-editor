@@ -1,6 +1,8 @@
 /*** includes ***/
 
+#include "edit.h"
 #include "row.h"
+#include "syntax.h"
 #include "terminal.h"
 
 #include <fstream>
@@ -32,68 +34,8 @@ using Term::fg;
 using Term::style;
 using Term::Key;
 
-enum editorHighlight {
-  HL_NORMAL = 0,
-  HL_COMMENT,
-  HL_MLCOMMENT,
-  HL_KEYWORD1,
-  HL_KEYWORD2,
-  HL_STRING,
-  HL_NUMBER,
-  HL_MATCH
-};
-
-#define HL_HIGHLIGHT_NUMBERS (1 << 0)
-#define HL_HIGHLIGHT_STRINGS (1 << 1)
-
 /*** data ***/
-
-struct editorSyntax
-{
-  const char *filetype;
-  const char **filematch;
-  const char **keywords;
-  const char *singleline_comment_start;
-  const char *multiline_comment_start;
-  const char *multiline_comment_end;
-  int flags;
-};
-
-struct editorConfig E;
-
-// /*** filetypes ***/
-
-const char *C_HL_extensions[] = { ".c", ".h", ".cpp", nullptr };
-const char *C_HL_keywords[] = { "switch",
-  "if",
-  "while",
-  "for",
-  "break",
-  "continue",
-  "return",
-  "else",
-  "struct",
-  "union",
-  "typedef",
-  "static",
-  "enum",
-  "class",
-  "case",
-  "int|",
-  "long|",
-  "double|",
-  "float|",
-  "char|",
-  "unsigned|",
-  "signed|",
-  "void|",
-  nullptr };
-
-struct editorSyntax HLDB[] = {
-  { "c", C_HL_extensions, C_HL_keywords, "//", "/*", "*/", HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS },
-};
-
-#define HLDB_ENTRIES (sizeof(HLDB) / sizeof(HLDB[0]))
+struct edit::editorConfig E;
 
 // /*** prototypes ***/
 
@@ -102,163 +44,25 @@ void editorSetStatusMessage();
 void editorSetStatusMessage(const char *msg);
 void editorSetStatusMessage(const char *fmt, const char *buf);
 
-// /*** syntax highlighting ***/
-
-bool is_separator(const char c) { return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c) != nullptr; }
-
-void editorUpdateSyntax(row::erow &row)
-{
-  row.hl = static_cast<unsigned char *>(realloc(row.hl, row.rsize));
-  memset(row.hl, HL_NORMAL, row.rsize);
-
-  if (E.syntax == nullptr) return;
-
-  const auto **keywords = E.syntax->keywords;
-
-  const auto *scs = E.syntax->singleline_comment_start;
-  const auto *mcs = E.syntax->multiline_comment_start;
-  const auto *mce = E.syntax->multiline_comment_end;
-
-  auto scs_len = scs ? strlen(scs) : 0;
-  auto mcs_len = mcs ? strlen(mcs) : 0;
-  auto mce_len = mce ? strlen(mce) : 0;
-
-  auto prev_sep = true;
-  auto in_string = 0;
-  auto in_comment = (row.idx > 0 && E.row[row.idx - 1].hl_open_comment);
-
-  size_t i = 0;
-  while (i < row.rsize) {
-    auto c = row.render.at(i);
-    auto prev_hl = (i > 0) ? row.hl[i - 1] : HL_NORMAL;
-
-    if (scs_len && !in_string && !in_comment) {
-      if (!strncmp(&row.render.at(i), scs, scs_len)) {
-        memset(&row.hl[i], HL_COMMENT, row.rsize - i);
-        break;
-      }
-    }
-
-    if (mcs_len && mce_len && !in_string) {
-      if (in_comment) {
-        row.hl[i] = HL_MLCOMMENT;
-        if (!strncmp(&row.render.at(i), mce, mce_len)) {
-          memset(&row.hl[i], HL_MLCOMMENT, mce_len);
-          i += mce_len;
-          in_comment = 0;
-          prev_sep = true;
-          continue;
-        } else {
-          i++;
-          continue;
-        }
-      } else if (!strncmp(&row.render.at(i), mcs, mcs_len)) {
-        memset(&row.hl[i], HL_MLCOMMENT, mcs_len);
-        i += mcs_len;
-        in_comment = 1;
-        continue;
-      }
-    }
-
-    if (E.syntax->flags & HL_HIGHLIGHT_STRINGS) {
-      if (in_string) {
-        row.hl[i] = HL_STRING;
-        if (c == '\\' && i + 1 < row.rsize) {
-          row.hl[i + 1] = HL_STRING;
-          i += 2;
-          continue;
-        }
-        if (c == in_string) in_string = 0;
-        i++;
-        prev_sep = true;
-        continue;
-      } else {
-        if (c == '"' || c == '\'') {
-          in_string = static_cast<unsigned char>(c);
-          row.hl[i] = HL_STRING;
-          i++;
-          continue;
-        }
-      }
-    }
-
-    if (E.syntax->flags & HL_HIGHLIGHT_NUMBERS) {
-      if ((isdigit(c) && (prev_sep || prev_hl == HL_NUMBER)) || (c == '.' && prev_hl == HL_NUMBER)) {
-        row.hl[i] = HL_NUMBER;
-        i++;
-        prev_sep = false;
-        continue;
-      }
-    }
-
-    if (prev_sep) {
-      int j;
-      for (j = 0; keywords[j]; j++) {
-        auto klen = strlen(keywords[j]);
-        auto kw2 = keywords[j][klen - 1] == '|';
-        if (kw2) klen--;
-
-        if (!strncmp(&row.render[i], keywords[j], klen) && is_separator(row.render[i + klen])) {
-          memset(&row.hl[i], kw2 ? HL_KEYWORD2 : HL_KEYWORD1, klen);
-          i += klen;
-          break;
-        }
-      }
-      if (keywords[j] != nullptr) {
-        prev_sep = false;
-        continue;
-      }
-    }
-
-    prev_sep = is_separator(c);
-    i++;
-  }
-
-  auto changed = (row.hl_open_comment != in_comment);
-  row.hl_open_comment = in_comment;
-  if (changed && row.idx + 1 < E.numrows) editorUpdateSyntax(E.row[row.idx + 1]);
-}
-
-auto editorSyntaxToColor(const int hl)
+/*** Syntax coloring */
+auto SyntaxToColor(const int hl)
 {
   switch (hl) {
-  case HL_COMMENT:
-  case HL_MLCOMMENT:
+  case syntax::HL_COMMENT:
+  case syntax::HL_MLCOMMENT:
     return fg::cyan;
-  case HL_KEYWORD1:
+  case syntax::HL_KEYWORD1:
     return fg::yellow;
-  case HL_KEYWORD2:
+  case syntax::HL_KEYWORD2:
     return fg::green;
-  case HL_STRING:
+  case syntax::HL_STRING:
     return fg::magenta;
-  case HL_NUMBER:
+  case syntax::HL_NUMBER:
     return fg::red;
-  case HL_MATCH:
+  case syntax::HL_MATCH:
     return fg::blue;
   default:
     return fg::gray;
-  }
-}
-
-void editorSelectSyntaxHighlight()
-{
-  E.syntax = nullptr;
-  if (E.filename.empty()) return;
-
-  for (auto j = 0; j != HLDB_ENTRIES; ++j) {
-    auto *s = &HLDB[j];
-    unsigned int i = 0;
-    while (s->filematch[i]) {
-      auto is_ext = (s->filematch[i][0] == '.');
-      if ((is_ext && E.filename.ends_with(s->filematch[i])) || (!is_ext && E.filename.starts_with(s->filematch[i]))) {
-        E.syntax = s;
-
-        for (std::size_t filerow = 0; filerow < E.numrows; filerow++) { editorUpdateSyntax(E.row[filerow]); }
-
-        return;
-      }
-      i++;
-    }
   }
 }
 
@@ -266,9 +70,9 @@ void editorSelectSyntaxHighlight()
 
 void editorInsertChar(const char c)
 {
-  if (E.cy == E.numrows) { editorUpdateSyntax(row::Insert(E, static_cast<int>(E.numrows), "")); }
+  if (E.cy == E.numrows) { syntax::Update(E, row::Insert(E, static_cast<int>(E.numrows), "")); }
   row::InsertChar(E.row[E.cy], static_cast<int>(E.cx), c);
-  editorUpdateSyntax(E.row[E.cy]);
+  syntax::Update(E, E.row[E.cy]);
   E.dirty++;
   E.cx++;
 }
@@ -276,16 +80,16 @@ void editorInsertChar(const char c)
 void editorInsertNewLine()
 {
   if (E.cx == 0) {
-    editorUpdateSyntax(row::Insert(E, static_cast<int>(E.cy), ""));
+    syntax::Update(E, row::Insert(E, static_cast<int>(E.cy), ""));
   } else {
     if (E.cy <= E.numrows) {
-      editorUpdateSyntax(
-        row::Insert(E, static_cast<int>(E.cy) + 1, E.row[E.cy].chars.substr(E.cx, E.row[E.cy].size - E.cx)));
+      syntax::Update(
+        E, row::Insert(E, static_cast<int>(E.cy) + 1, E.row[E.cy].chars.substr(E.cx, E.row[E.cy].size - E.cx)));
     }
     E.row[E.cy].chars.erase(E.cx, E.row[E.cy].size - E.cx);
     E.row[E.cy].size = E.cx;
     row::Update(E.row[E.cy]);
-    editorUpdateSyntax(E.row[E.cy]);
+    syntax::Update(E, E.row[E.cy]);
   }
   E.dirty++;
   E.cy++;
@@ -297,16 +101,16 @@ void editorDelChar()
   if (E.cy == E.numrows) return;
   if (E.cx == 0 && E.cy == 0) return;
 
-  row::erow &row = E.row[E.cy];
+  edit::erow &row = E.row[E.cy];
   if (E.cx > 0) {
     row::DelChar(row, static_cast<int>(E.cx) - 1);
-    editorUpdateSyntax(E.row[E.cy - 1]);
+    syntax::Update(E, E.row[E.cy - 1]);
     E.dirty++;
     E.cx--;
   } else {
     E.cx = E.row[E.cy - 1].size;
     row::AppendString(E.row[E.cy - 1], row.chars);
-    editorUpdateSyntax(E.row[E.cy - 1]);
+    syntax::Update(E, E.row[E.cy - 1]);
     E.dirty++;
     row::Del(E, static_cast<int>(E.cy));
     E.cy--;
@@ -342,7 +146,7 @@ void editorOpen(char *filename)
 #else
   E.filename = filename;
 #endif
-  editorSelectSyntaxHighlight();
+  syntax::SelectHighlight(E);
 
   std::ifstream f(filename);
   if (f.fail()) throw std::runtime_error("File failed to open.");
@@ -351,7 +155,7 @@ void editorOpen(char *filename)
   while (f.rdstate() == std::ios_base::goodbit) {
     std::size_t linelen = line.size();
     while (linelen > 0 && (line[linelen - 1] == '\n' || line[linelen - 1] == '\r')) linelen--;
-    editorUpdateSyntax(row::Insert(E, static_cast<int>(E.numrows), line));
+    syntax::Update(E, row::Insert(E, static_cast<int>(E.numrows), line));
     std::getline(f, line);
   }
   E.dirty = 0;
@@ -365,7 +169,7 @@ void editorSave(const Terminal &term)
       editorSetStatusMessage("Save aborted");
       return;
     }
-    editorSelectSyntaxHighlight();
+    syntax::SelectHighlight(E);
   }
 
   int len;
@@ -419,7 +223,7 @@ void editorFindCallback(char *query, int key)
     else if (current == static_cast<int>(E.numrows))
       current = 0;
 
-    row::erow &row = E.row[current];
+    edit::erow &row = E.row[current];
     auto pos = row.render.find(query);
 
     if (std::string::npos != pos) {
@@ -432,7 +236,7 @@ void editorFindCallback(char *query, int key)
       saved_hl_line = current;
       saved_hl = static_cast<char *>(malloc(row.size));
       memcpy(saved_hl, row.hl, row.rsize);
-      memset(&row.hl[match - row.render.c_str()], HL_MATCH, strlen(query));
+      memset(&row.hl[match - row.render.c_str()], syntax::HL_MATCH, strlen(query));
       break;
     }
   }
@@ -509,14 +313,14 @@ void editorDrawRows(std::string &ab)
             ab.append(std::string(&sym, 1));
             ab.append(color(style::reset));
             if (current_color != fg::black) { ab.append(color(current_color)); }
-          } else if (hl[j] == HL_NORMAL) {
+          } else if (hl[j] == syntax::HL_NORMAL) {
             if (current_color != fg::black) {
               ab.append(color(fg::reset));
               current_color = fg::black;
             }
             ab.append(std::string(&c[j], 1));
           } else {
-            fg color = editorSyntaxToColor(hl[j]);
+            fg color = SyntaxToColor(hl[j]);
             if (color != current_color) {
               current_color = color;
               ab.append(Term::color(color));

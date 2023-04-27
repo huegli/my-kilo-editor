@@ -9,7 +9,7 @@ namespace row {
 
 /*** row operations ***/
 
-std::size_t CxToRx(const erow &r, const std::size_t cx)
+std::size_t CxToRx(const edit::erow &r, const std::size_t cx)
 {
   std::size_t rx = 0;
   for (std::size_t j = 0; j < cx; j++) {
@@ -19,7 +19,7 @@ std::size_t CxToRx(const erow &r, const std::size_t cx)
   return rx;
 }
 
-std::size_t RxToCx(const erow &r, const std::size_t rx)
+std::size_t RxToCx(const edit::erow &r, const std::size_t rx)
 {
   std::size_t cur_rx = 0;
   std::size_t cx = 0;
@@ -32,7 +32,7 @@ std::size_t RxToCx(const erow &r, const std::size_t rx)
   return cx;
 }
 
-void Update(erow &r)
+void Update(edit::erow &r)
 {
   r.render.erase();
   std::size_t idx = 0;// FIXME: Try to get rid of idx
@@ -52,11 +52,11 @@ void Update(erow &r)
   r.rsize = r.render.length();
 }
 
-erow &Insert(editorConfig &E, const int at, const std::string &s)
+edit::erow &Insert(edit::editorConfig &E, const int at, const std::string &s)
 {
   auto idx = static_cast<std::size_t>(at);
 
-  erow newRow{};
+  edit::erow newRow{};
   E.row.insert(E.row.begin() + idx, newRow);
 
   for (auto j = idx + 1; j <= E.numrows; j++) E.row[j].idx++;
@@ -78,9 +78,9 @@ erow &Insert(editorConfig &E, const int at, const std::string &s)
   return E.row[idx];
 }
 
-void editorFreeRow(erow &r) { free(r.hl); }
+void editorFreeRow(edit::erow &r) { free(r.hl); }
 
-void Del(editorConfig &E, const int at)
+void Del(edit::editorConfig &E, const int at)
 {
   if (at < 0 || static_cast<std::size_t>(at) >= E.numrows) return;
 
@@ -92,7 +92,7 @@ void Del(editorConfig &E, const int at)
   E.dirty++;
 }
 
-void InsertChar(erow &r, const int at, const char c)
+void InsertChar(edit::erow &r, const int at, const char c)
 {
   auto idx = static_cast<std::size_t>(at);
   if (at < 0 || static_cast<std::size_t>(at) > r.size) idx = r.size;
@@ -101,14 +101,14 @@ void InsertChar(erow &r, const int at, const char c)
   Update(r);
 }
 
-void AppendString(erow &r, const std::string &s)
+void AppendString(edit::erow &r, const std::string &s)
 {
   r.chars.append(s);
   r.size += s.length();
   Update(r);
 }
 
-void DelChar(erow &r, const int at)
+void DelChar(edit::erow &r, const int at)
 {
   if (at < 0 || at >= static_cast<int>(r.size)) return;
   r.chars.erase(at, 1);

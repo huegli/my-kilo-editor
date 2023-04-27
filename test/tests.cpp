@@ -1,3 +1,4 @@
+#include "edit.h"
 #include "row.h"
 #include <array>
 #include <catch2/catch_test_macros.hpp>
@@ -6,7 +7,7 @@
 TEST_CASE("Cx -> Rx", "[row]")
 {
 
-  row::erow r;
+  edit::erow r;
   r.chars = "\t#";
   CHECK(9 == row::CxToRx(r, r.chars.length()));
   r.chars = "#\t#";
@@ -28,7 +29,7 @@ TEST_CASE("Cx -> Rx", "[row]")
 TEST_CASE("Rx -> Cx", "[row]")
 {
 
-  row::erow r;
+  edit::erow r;
   r.chars = "\t#";
   r.size = r.chars.length();
   CHECK(1 == row::RxToCx(r, 8));
@@ -45,7 +46,7 @@ TEST_CASE("Rx -> Cx", "[row]")
 
 bool checkUpdate(const std::string &chars, const std::string &render)
 {
-  row::erow r;
+  edit::erow r;
   r.chars = chars;
   r.size = chars.length();
   row::Update(r);
@@ -73,7 +74,7 @@ TEST_CASE("Update", "[row]")
 
 TEST_CASE("InsertChar", "[row]")
 {
-  row::erow r;
+  edit::erow r;
   r.chars = "0123456789";
   r.size = 10;
   row::InsertChar(r, 0, '*');
@@ -92,7 +93,7 @@ TEST_CASE("InsertChar", "[row]")
 
 TEST_CASE("AppendString", "[row")
 {
-  row::erow r;
+  edit::erow r;
   r.chars = "0123456789";
   r.size = 10;
   row::AppendString(r, "ABC");
@@ -106,7 +107,7 @@ TEST_CASE("AppendString", "[row")
 
 TEST_CASE("DelChar", "[row]")
 {
-  row::erow r;
+  edit::erow r;
   r.chars = "0123456789";
   r.size = 10;
   row::DelChar(r, 0);

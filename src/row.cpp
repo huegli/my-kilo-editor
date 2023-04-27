@@ -87,7 +87,7 @@ void Del(edit::editorConfig &E, const int at)
   auto idx = static_cast<std::size_t>(at);
   editorFreeRow(E.row[idx]);
   E.row.erase(E.row.begin() + idx);
-  for (auto j = idx; j < idx - 1; j++) E.row[j].idx--;
+  for (auto j = idx; j < E.numrows - 1; j++) E.row[j].idx--;
   E.numrows--;
   E.dirty++;
 }

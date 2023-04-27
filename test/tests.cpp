@@ -2,6 +2,7 @@
 #include "row.h"
 #include <array>
 #include <catch2/catch_test_macros.hpp>
+#include <cmath>
 #include <string>
 
 TEST_CASE("Cx -> Rx", "[row]")
@@ -169,4 +170,43 @@ TEST_CASE("Insert", "[row]")
   CHECK(E.row[4].chars == "Bottom");
   CHECK(E.row[4].idx == 4);
   CHECK(E.numrows == 5);
+}
+
+TEST_CASE("Del", "[row]")
+{
+  edit::editorConfig E;
+  E.numrows = 0; // FIXME: should not need this
+  E.dirty = 0;
+
+  // build up rows
+  row::Insert(E, 0, "One");
+  row::Insert(E, 1, "Two");
+  row::Insert(E, 2, "Three");
+  row::Insert(E, 3, "Four");
+
+  // Delete middle  ("Two")
+  row::Del(E, 1);
+  CHECK(E.row[1].chars == "Three");
+  CHECK(E.row[1].idx == 1);
+  CHECK(E.row[2].chars == "Four");
+  CHECK(E.row[2].idx == 2);
+  CHECK(E.numrows == 3);
+  CHECK(E.dirty > 0);
+
+
+  // Delete last ("Four")
+  row::Del(E, 2);
+  CHECK(E.row[1].chars == "Three");
+  CHECK(E.row[1].idx == 1);
+  CHECK(E.numrows == 2);
+
+  // Delete first ("One")
+  row::Del(E, 0);
+  CHECK(E.row[0].chars == "Three");
+  CHECK(E.row[0].idx == 0);
+  CHECK(E.numrows == 1);
+
+  // Delete last remaining
+  row::Del(E, 0);
+  CHECK(E.numrows == 0);
 }

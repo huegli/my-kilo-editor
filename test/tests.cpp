@@ -126,7 +126,7 @@ TEST_CASE("DelChar", "[row]")
 
 TEST_CASE("Insert", "[row]")
 {
-  editorConfig E;
+  edit::editorConfig E;
   E.numrows = 0; // FIXME: should not need this
   E.dirty = 0;
 

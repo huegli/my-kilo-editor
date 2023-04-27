@@ -1,6 +1,8 @@
 #include "syntax.h"
 #include "edit.h"
 
+#include <cstring>
+
 namespace syntax {
 
 

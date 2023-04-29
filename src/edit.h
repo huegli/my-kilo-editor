@@ -1,9 +1,13 @@
 #pragma once
 
+#include "terminal.h"
 #include <string>
 #include <vector>
 
 namespace edit {
+
+const std::string KILO_VERSION{ "0.0.1" };
+const std::size_t KILO_QUIT_TIMES{ 3 };
 
 struct editorSyntax
 {
@@ -44,5 +48,16 @@ struct editorConfig
   time_t statusmsg_time;
   struct editorSyntax *syntax;
 };
+
+editorConfig &referenceToE();
+
+void InsertChar(const char c);
+void InsertNewLine();
+void DelChar();
+char *RowsToString(int *buflen);
+
+void Scroll();
+
+void Open(char *filename);
 
 }// end namespace edit

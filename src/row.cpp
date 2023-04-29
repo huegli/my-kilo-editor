@@ -52,46 +52,6 @@ void Update(edit::erow &r)
   r.rsize = r.render.length();
 }
 
-edit::erow &Insert(edit::editorConfig &E, const int at, const std::string &s)
-{
-  auto idx = static_cast<std::size_t>(at);
-
-  edit::erow newRow{};
-  E.row.insert(E.row.begin() + idx, newRow);
-
-  for (auto j = idx + 1; j <= E.numrows; j++) E.row[j].idx++;
-
-  E.row[at].idx = idx;
-
-  E.row[at].size = s.length();
-  E.row[at].chars = s;
-
-  E.row[at].rsize = 0;
-  E.row[at].render = "";
-  E.row[at].hl = nullptr;
-  E.row[at].hl_open_comment = 0;
-  Update(E.row[idx]);
-
-  E.numrows++;
-  E.dirty++;
-
-  return E.row[idx];
-}
-
-void editorFreeRow(edit::erow &r) { free(r.hl); }
-
-void Del(edit::editorConfig &E, const int at)
-{
-  if (at < 0 || static_cast<std::size_t>(at) >= E.numrows) return;
-
-  auto idx = static_cast<std::size_t>(at);
-  editorFreeRow(E.row[idx]);
-  E.row.erase(E.row.begin() + idx);
-  for (auto j = idx; j < E.numrows - 1; j++) E.row[j].idx--;
-  E.numrows--;
-  E.dirty++;
-}
-
 void InsertChar(edit::erow &r, const int at, const char c)
 {
   auto idx = static_cast<std::size_t>(at);

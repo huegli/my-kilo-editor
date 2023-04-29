@@ -1,8 +1,6 @@
 /*** includes ***/
 
 #include "edit.h"
-#include "row.h"
-#include "syntax.h"
 #include "terminal.h"
 #include "tui.h"
 

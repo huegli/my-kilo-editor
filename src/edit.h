@@ -1,6 +1,5 @@
 #pragma once
 
-#include "terminal.h"
 #include <string>
 #include <vector>
 
@@ -51,6 +50,8 @@ struct editorConfig
 
 editorConfig &referenceToE();
 
+edit::erow &Insert(edit::editorConfig &, const int, const std::string &);
+void Del(edit::editorConfig &, const int);
 void InsertChar(const char c);
 void InsertNewLine();
 void DelChar();

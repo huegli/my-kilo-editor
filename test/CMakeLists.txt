@@ -8,7 +8,7 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(Catch2)
 
-add_executable(tests tests.cpp)
+add_executable(tests test_row.cpp test_edit.cpp)
 target_link_libraries(tests PRIVATE editor Catch2::Catch2WithMain)
 
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)

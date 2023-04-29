@@ -25,10 +25,49 @@ struct editorConfig E;
 editorConfig &referenceToE() { return E; }
 
 /*** editor operations ***/
+edit::erow &Insert(edit::editorConfig &E, const int at, const std::string &s)
+{
+  auto idx = static_cast<std::size_t>(at);
+
+  edit::erow newRow{};
+  E.row.insert(E.row.begin() + idx, newRow);
+
+  for (auto j = idx + 1; j <= E.numrows; j++) E.row[j].idx++;
+
+  E.row[at].idx = idx;
+
+  E.row[at].size = s.length();
+  E.row[at].chars = s;
+
+  E.row[at].rsize = 0;
+  E.row[at].render = "";
+  E.row[at].hl = nullptr;
+  E.row[at].hl_open_comment = 0;
+  row::Update(E.row[idx]);
+
+  E.numrows++;
+  E.dirty++;
+
+  return E.row[idx];
+}
+
+void editorFreeRow(edit::erow &r) { free(r.hl); }
+
+void Del(edit::editorConfig &E, const int at)
+{
+  if (at < 0 || static_cast<std::size_t>(at) >= E.numrows) return;
+
+  auto idx = static_cast<std::size_t>(at);
+  editorFreeRow(E.row[idx]);
+  E.row.erase(E.row.begin() + idx);
+  for (auto j = idx; j < E.numrows - 1; j++) E.row[j].idx--;
+  E.numrows--;
+  E.dirty++;
+}
 
 void InsertChar(const char c)
 {
-  if (E.cy == E.numrows) { syntax::Update(E, row::Insert(E, static_cast<int>(E.numrows), "")); }
+  if (E.cy == E.numrows) { syntax::Update(E, edit::Insert(E, static_cast<int>(E.numrows), "")); }
   row::InsertChar(E.row[E.cy], static_cast<int>(E.cx), c);
   syntax::Update(E, E.row[E.cy]);
   E.dirty++;
@@ -38,11 +77,11 @@ void InsertChar(const char c)
 void InsertNewLine()
 {
   if (E.cx == 0) {
-    syntax::Update(E, row::Insert(E, static_cast<int>(E.cy), ""));
+    syntax::Update(E, edit::Insert(E, static_cast<int>(E.cy), ""));
   } else {
     if (E.cy <= E.numrows) {
       syntax::Update(
-        E, row::Insert(E, static_cast<int>(E.cy) + 1, E.row[E.cy].chars.substr(E.cx, E.row[E.cy].size - E.cx)));
+        E, edit::Insert(E, static_cast<int>(E.cy) + 1, E.row[E.cy].chars.substr(E.cx, E.row[E.cy].size - E.cx)));
     }
     E.row[E.cy].chars.erase(E.cx, E.row[E.cy].size - E.cx);
     E.row[E.cy].size = E.cx;
@@ -70,7 +109,7 @@ void DelChar()
     row::AppendString(E.row[E.cy - 1], row.chars);
     syntax::Update(E, E.row[E.cy - 1]);
     E.dirty++;
-    row::Del(E, static_cast<int>(E.cy));
+    edit::Del(E, static_cast<int>(E.cy));
     E.cy--;
   }
 }
@@ -127,7 +166,7 @@ void Open(char *filename)
   while (f.rdstate() == std::ios_base::goodbit) {
     std::size_t linelen = line.size();
     while (linelen > 0 && (line[linelen - 1] == '\n' || line[linelen - 1] == '\r')) linelen--;
-    syntax::Update(E, row::Insert(E, static_cast<int>(E.numrows), line));
+    syntax::Update(E, edit::Insert(E, static_cast<int>(E.numrows), line));
     std::getline(f, line);
   }
   E.dirty = 0;
